@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+#root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#game-root canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@layer components {
+  .pixel-btn {
+    @apply relative inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-pixel text-[10px] tracking-wide uppercase bg-parchment-200 text-sea-900 shadow-pixel transition-transform active:translate-y-0.5 active:shadow-none select-none;
+  }
+  .pixel-btn.primary {
+    @apply bg-gold text-sea-900;
+  }
+  .pixel-btn.danger {
+    @apply bg-rum text-parchment-50;
+  }
+  .pixel-btn.ghost {
+    @apply bg-sea-800/70 text-parchment-100 shadow-none ring-1 ring-parchment-200/30;
+  }
+  .pixel-card {
+    @apply rounded-lg bg-sea-800/90 backdrop-blur ring-1 ring-parchment-200/20 p-4 shadow-pixel;
+  }
+  .hud-panel {
+    @apply pointer-events-auto bg-sea-900/70 backdrop-blur-md rounded-lg ring-1 ring-parchment-200/20 px-3 py-2 text-[11px] font-pixel;
+  }
+  .dialog-backdrop {
+    @apply fixed inset-0 z-40 bg-sea-900/80 backdrop-blur-sm flex items-center justify-center p-4;
+  }
+}

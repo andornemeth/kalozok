@@ -1,0 +1,202 @@
+{
+  "app": {
+    "title": "Kalózok",
+    "subtitle": "A Karib-tenger ura",
+    "tagline": "Modern kalandjáték a hét tengeren, telefonon is kényelmesen."
+  },
+  "title": {
+    "new": "Új karrier",
+    "continue": "Folytatás",
+    "daily": "Napi kihívás",
+    "settings": "Beállítások",
+    "credits": "Készítők",
+    "install": "Telepítés"
+  },
+  "settings": {
+    "title": "Beállítások",
+    "language": "Nyelv",
+    "hungarian": "Magyar",
+    "english": "Angol",
+    "audio": "Hang",
+    "music": "Zene",
+    "sfx": "Hangeffektek",
+    "haptics": "Rezgés",
+    "theme": "Téma",
+    "dark": "Sötét",
+    "light": "Világos",
+    "system": "Rendszer",
+    "accessibility": "Akadálymentesség",
+    "colorblind": "Színvakbarát paletta",
+    "reduceMotion": "Mozgás csökkentése",
+    "largeText": "Nagy szöveg",
+    "close": "Bezár",
+    "reset": "Alaphelyzet"
+  },
+  "career": {
+    "name": "Kapitány neve",
+    "nation": "Szolgálat",
+    "start": "Indulás",
+    "era": "Korszak",
+    "difficulty": "Nehézség",
+    "easy": "Újonc",
+    "normal": "Tenger farkasa",
+    "hard": "Rémálom"
+  },
+  "nations": {
+    "england": "Anglia",
+    "spain": "Spanyolország",
+    "france": "Franciaország",
+    "netherlands": "Hollandia",
+    "pirate": "Szabadkalóz"
+  },
+  "hud": {
+    "gold": "arany",
+    "crew": "legénység",
+    "ship": "hajó",
+    "wind": "szél",
+    "morale": "morál",
+    "food": "élelem",
+    "menu": "Menü",
+    "date": "Dátum"
+  },
+  "world": {
+    "tapToSail": "Érints egy pontot a vitorlázáshoz",
+    "nearPort": "{{port}} közelében — érintsd a horgonyt a kikötéshez",
+    "dropAnchor": "Kikötés",
+    "setSail": "Útra fel",
+    "storm": "Vihar közeleg!",
+    "sightEnemy": "Ellenséges hajó látótávolságban!",
+    "engage": "Támadás",
+    "flee": "Menekülés"
+  },
+  "port": {
+    "welcome": "Üdv {{port}} kikötőjében",
+    "tavern": "Kocsma",
+    "merchant": "Kereskedő",
+    "shipyard": "Hajógyár",
+    "governor": "Kormányzó",
+    "leave": "Kifutás a tengerre",
+    "jail": "Börtön"
+  },
+  "tavern": {
+    "title": "A Vidám Pintes Kocsma",
+    "hire": "Toborzás ({{cost}} arany)",
+    "rumors": "Pletykák meghallgatása",
+    "drink": "Italozás",
+    "noCrew": "Ma nincsenek vállalkozó tengerészek.",
+    "hired": "{{count}} új tengerész csatlakozott.",
+    "rumor": "Egy részeg matróz suttogja…"
+  },
+  "merchant": {
+    "title": "Kereskedő bódé",
+    "buy": "Vétel",
+    "sell": "Eladás",
+    "stock": "Készlet",
+    "price": "Ár",
+    "hold": "Raktár",
+    "cargo": "Rakomány",
+    "notEnoughGold": "Kevés az arany!",
+    "notEnoughHold": "Megtelt a raktár!"
+  },
+  "shipyard": {
+    "title": "Hajógyár",
+    "repair": "Javítás ({{cost}} arany)",
+    "upgradeCannons": "Több ágyú ({{cost}})",
+    "upgradeSails": "Jobb vitorlázat ({{cost}})",
+    "newShip": "Új hajó",
+    "repaired": "Hajó teljesen rendben."
+  },
+  "governor": {
+    "title": "A Kormányzói palota",
+    "mission": "Megbízás vállalása",
+    "letterOfMarque": "Megbízólevél",
+    "reward": "Jutalom",
+    "promotion": "Előléptetés!",
+    "ballInvite": "A leánya tánchoz hív…",
+    "dance": "Tánc"
+  },
+  "naval": {
+    "title": "Tengeri csata",
+    "roundShot": "Tömör golyó",
+    "chainShot": "Láncgolyó",
+    "grapeShot": "Kartács",
+    "fire": "Tűz!",
+    "board": "Felszállás",
+    "surrender": "Megadás",
+    "hullHits": "Törzstalálatok",
+    "sailHits": "Vitorlatalálatok",
+    "crewHits": "Legénység veszteség",
+    "yourTurn": "A te köröd",
+    "enemyTurn": "Ellenfél köre"
+  },
+  "duel": {
+    "title": "Párbaj",
+    "high": "Magas",
+    "middle": "Középső",
+    "low": "Alacsony",
+    "attack": "Támadás",
+    "parry": "Hárítás",
+    "thrust": "Szúrás",
+    "slash": "Vágás",
+    "taunt": "Provokáció",
+    "victory": "Diadal!",
+    "defeat": "Legyőztek."
+  },
+  "land": {
+    "title": "Szárazföldi csata",
+    "buccaneer": "Kalóz",
+    "soldier": "Katona",
+    "cavalry": "Lovasság",
+    "leftFlank": "Bal szárny",
+    "center": "Közép",
+    "rightFlank": "Jobb szárny",
+    "deploy": "Küld",
+    "victory": "A város elesett!",
+    "defeat": "Visszaverve."
+  },
+  "treasure": {
+    "title": "Kincskeresés",
+    "warmer": "Melegebb…",
+    "colder": "Hidegebb…",
+    "hot": "Forró!",
+    "dig": "Ásás",
+    "found": "Megtaláltad a kincset! +{{gold}} arany",
+    "fragments": "Térképdarabkák: {{n}}/4"
+  },
+  "save": {
+    "title": "Mentések",
+    "slot": "Hely {{n}}",
+    "empty": "— üres —",
+    "save": "Mentés",
+    "load": "Betöltés",
+    "delete": "Törlés",
+    "export": "Exportálás",
+    "import": "Importálás",
+    "autosave": "Automata mentés"
+  },
+  "game": {
+    "paused": "Szünet",
+    "resume": "Folytatás",
+    "quit": "Kilépés",
+    "yes": "Igen",
+    "no": "Nem",
+    "back": "Vissza",
+    "next": "Tovább"
+  },
+  "tutorial": {
+    "move": "Érints a víz bármely pontjára, hogy odavitorlázz.",
+    "wind": "A kis nyilak a szél irányát mutatják — szemből lassabb a hajó.",
+    "port": "Érintsd a horgonyt egy kikötőbe érkezéshez.",
+    "combat": "A harcban a helyezkedés minden: fordulj oldalra az ágyúkhoz."
+  },
+  "goods": {
+    "food": "Élelem",
+    "rum": "Rum",
+    "sugar": "Cukor",
+    "tobacco": "Dohány",
+    "cloth": "Vászon",
+    "spice": "Fűszer",
+    "cannons": "Ágyúk",
+    "gunpowder": "Lőpor"
+  }
+}

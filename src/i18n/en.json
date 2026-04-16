@@ -1,0 +1,202 @@
+{
+  "app": {
+    "title": "Pirates",
+    "subtitle": "Master of the Caribbean",
+    "tagline": "A modern adventure across the seven seas, cozy on a phone."
+  },
+  "title": {
+    "new": "New career",
+    "continue": "Continue",
+    "daily": "Daily challenge",
+    "settings": "Settings",
+    "credits": "Credits",
+    "install": "Install"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "hungarian": "Hungarian",
+    "english": "English",
+    "audio": "Audio",
+    "music": "Music",
+    "sfx": "Sound effects",
+    "haptics": "Haptics",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light",
+    "system": "System",
+    "accessibility": "Accessibility",
+    "colorblind": "Colorblind palette",
+    "reduceMotion": "Reduce motion",
+    "largeText": "Large text",
+    "close": "Close",
+    "reset": "Reset"
+  },
+  "career": {
+    "name": "Captain name",
+    "nation": "Service",
+    "start": "Set sail",
+    "era": "Era",
+    "difficulty": "Difficulty",
+    "easy": "Greenhorn",
+    "normal": "Sea wolf",
+    "hard": "Nightmare"
+  },
+  "nations": {
+    "england": "England",
+    "spain": "Spain",
+    "france": "France",
+    "netherlands": "Netherlands",
+    "pirate": "Freebooter"
+  },
+  "hud": {
+    "gold": "gold",
+    "crew": "crew",
+    "ship": "ship",
+    "wind": "wind",
+    "morale": "morale",
+    "food": "food",
+    "menu": "Menu",
+    "date": "Date"
+  },
+  "world": {
+    "tapToSail": "Tap anywhere to sail there",
+    "nearPort": "Near {{port}} — tap the anchor to dock",
+    "dropAnchor": "Dock",
+    "setSail": "Set sail",
+    "storm": "A storm is brewing!",
+    "sightEnemy": "Hostile ship sighted!",
+    "engage": "Engage",
+    "flee": "Flee"
+  },
+  "port": {
+    "welcome": "Welcome to {{port}}",
+    "tavern": "Tavern",
+    "merchant": "Merchant",
+    "shipyard": "Shipyard",
+    "governor": "Governor",
+    "leave": "Back to the sea",
+    "jail": "Jail"
+  },
+  "tavern": {
+    "title": "The Merry Mug",
+    "hire": "Recruit ({{cost}} gold)",
+    "rumors": "Listen to rumors",
+    "drink": "Drink",
+    "noCrew": "No willing sailors today.",
+    "hired": "{{count}} new sailors joined.",
+    "rumor": "A drunken sailor whispers…"
+  },
+  "merchant": {
+    "title": "Merchant stall",
+    "buy": "Buy",
+    "sell": "Sell",
+    "stock": "Stock",
+    "price": "Price",
+    "hold": "Hold",
+    "cargo": "Cargo",
+    "notEnoughGold": "Not enough gold!",
+    "notEnoughHold": "Hold is full!"
+  },
+  "shipyard": {
+    "title": "Shipyard",
+    "repair": "Repair ({{cost}} gold)",
+    "upgradeCannons": "More cannons ({{cost}})",
+    "upgradeSails": "Better sails ({{cost}})",
+    "newShip": "New ship",
+    "repaired": "Ship is shipshape."
+  },
+  "governor": {
+    "title": "Governor's palace",
+    "mission": "Take a mission",
+    "letterOfMarque": "Letter of marque",
+    "reward": "Reward",
+    "promotion": "Promotion!",
+    "ballInvite": "His daughter invites you to dance…",
+    "dance": "Dance"
+  },
+  "naval": {
+    "title": "Naval battle",
+    "roundShot": "Round shot",
+    "chainShot": "Chain shot",
+    "grapeShot": "Grape shot",
+    "fire": "Fire!",
+    "board": "Board",
+    "surrender": "Surrender",
+    "hullHits": "Hull hits",
+    "sailHits": "Sail hits",
+    "crewHits": "Crew casualties",
+    "yourTurn": "Your turn",
+    "enemyTurn": "Enemy turn"
+  },
+  "duel": {
+    "title": "Duel",
+    "high": "High",
+    "middle": "Middle",
+    "low": "Low",
+    "attack": "Attack",
+    "parry": "Parry",
+    "thrust": "Thrust",
+    "slash": "Slash",
+    "taunt": "Taunt",
+    "victory": "Victory!",
+    "defeat": "Defeated."
+  },
+  "land": {
+    "title": "Land battle",
+    "buccaneer": "Buccaneer",
+    "soldier": "Soldier",
+    "cavalry": "Cavalry",
+    "leftFlank": "Left flank",
+    "center": "Center",
+    "rightFlank": "Right flank",
+    "deploy": "Deploy",
+    "victory": "The town has fallen!",
+    "defeat": "Repelled."
+  },
+  "treasure": {
+    "title": "Treasure hunt",
+    "warmer": "Warmer…",
+    "colder": "Colder…",
+    "hot": "Hot!",
+    "dig": "Dig",
+    "found": "You found the treasure! +{{gold}} gold",
+    "fragments": "Map fragments: {{n}}/4"
+  },
+  "save": {
+    "title": "Saves",
+    "slot": "Slot {{n}}",
+    "empty": "— empty —",
+    "save": "Save",
+    "load": "Load",
+    "delete": "Delete",
+    "export": "Export",
+    "import": "Import",
+    "autosave": "Autosave"
+  },
+  "game": {
+    "paused": "Paused",
+    "resume": "Resume",
+    "quit": "Quit",
+    "yes": "Yes",
+    "no": "No",
+    "back": "Back",
+    "next": "Next"
+  },
+  "tutorial": {
+    "move": "Tap anywhere on the water to sail there.",
+    "wind": "Small arrows show wind direction — into it you sail slower.",
+    "port": "Tap the anchor to dock at a port.",
+    "combat": "In combat positioning is everything: turn broadside to use your cannons."
+  },
+  "goods": {
+    "food": "Food",
+    "rum": "Rum",
+    "sugar": "Sugar",
+    "tobacco": "Tobacco",
+    "cloth": "Cloth",
+    "spice": "Spice",
+    "cannons": "Cannons",
+    "gunpowder": "Gunpowder"
+  }
+}
