@@ -205,7 +205,7 @@ export class WorldMapScene extends Phaser.Scene {
     const start = PORTS[0]!;
     this.player = new ShipGraphic(this, start.x + 42, start.y + 42, {
       kind: 'ship-player',
-      scale: 0.42,
+      scale: 0.3,
     });
     this.player.setDepth(5);
     this.heading = 0;
@@ -228,7 +228,7 @@ export class WorldMapScene extends Phaser.Scene {
         y = 60 + rng() * (WORLD_H - 120);
         if (!this.insideLand(x, y)) break;
       }
-      const ship = new ShipGraphic(this, x, y, { kind: shipKind, scale: 0.36 });
+      const ship = new ShipGraphic(this, x, y, { kind: shipKind, scale: 0.24 });
       ship.setDepth(4);
       this.enemies.push({ ship, heading: rng() * Math.PI * 2, speed: 0.22 + rng() * 0.2, kind, nation });
     }
