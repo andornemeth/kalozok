@@ -3,11 +3,13 @@ import { bus } from '@/game/EventBus';
 import { useGame } from '@/state/gameStore';
 import { SHIPS } from '@/game/data/ships';
 import { vibrate } from '@/utils/haptics';
+import { ShipGraphic, type HullKey, type SailKey, type FlagKey } from '@/game/entities/ShipGraphic';
+import type { NationId } from '@/game/data/ports';
 
 type Ammo = 'round' | 'chain' | 'grape';
 
 interface CombatShip {
-  sprite: Phaser.GameObjects.Image;
+  ship: ShipGraphic;
   heading: number;
   speed: number;
   hull: number;
@@ -33,14 +35,16 @@ export class NavalBattleScene extends Phaser.Scene {
   private boardButton!: Phaser.GameObjects.Container;
   private ammoButtons: Phaser.GameObjects.Container[] = [];
   private enemyKind: EnemyKind = 'pirate';
+  private enemyNation: NationId = 'pirate';
   private ended = false;
 
   constructor() {
     super('Naval');
   }
 
-  init(data: { enemyKind?: EnemyKind }): void {
+  init(data: { enemyKind?: EnemyKind; enemyNation?: NationId }): void {
     this.enemyKind = data.enemyKind ?? 'pirate';
+    this.enemyNation = data.enemyNation ?? 'pirate';
     this.ended = false;
   }
 
@@ -51,6 +55,7 @@ export class NavalBattleScene extends Phaser.Scene {
     this.createHudOverlay();
     this.createTouchControls();
     useGame.getState().setFlag('tutorialCombat', true);
+    this.scale.on('resize', () => this.layoutButtons());
   }
 
   private drawSea(): void {
@@ -67,30 +72,46 @@ export class NavalBattleScene extends Phaser.Scene {
     this.cameras.main.centerOn(800, 600);
   }
 
+  private flagFor(n: NationId): FlagKey {
+    const map: Record<NationId, FlagKey> = {
+      england: 'flag-england',
+      spain: 'flag-spain',
+      france: 'flag-france',
+      netherlands: 'flag-netherlands',
+      pirate: 'flag-pirate',
+    };
+    return map[n];
+  }
+
   private createCombatants(): void {
     const gameState = useGame.getState();
     const cls = gameState.ship.class;
     const stats = SHIPS[cls];
-    this.player = this.makeShip('ship-player', 700, 650, 0, {
-      hull: gameState.ship.hull,
-      sail: gameState.ship.sail,
-      crew: gameState.ship.crew,
-      hullMax: stats.hullMax,
-      sailMax: stats.sailMax,
-      crewMax: stats.crewMax,
-      cannons: stats.cannons,
-    });
-    const enemyStats = this.pickEnemyStats();
-    this.enemy = this.makeShip(
-      this.enemyKind === 'pirate' ? 'ship-enemy' : this.enemyKind === 'navy' ? 'ship-navy' : 'ship-merchant',
-      900,
-      550,
-      Math.PI,
-      enemyStats,
+    this.player = this.makeShip(
+      'hull-player',
+      'sail-tan',
+      this.flagFor(gameState.career.nation),
+      700,
+      650,
+      0,
+      {
+        hull: gameState.ship.hull,
+        sail: gameState.ship.sail,
+        crew: gameState.ship.crew,
+        hullMax: stats.hullMax,
+        sailMax: stats.sailMax,
+        crewMax: stats.crewMax,
+        cannons: stats.cannons,
+      },
     );
+    const enemyHull: HullKey =
+      this.enemyKind === 'pirate' ? 'hull-enemy' : this.enemyKind === 'navy' ? 'hull-navy' : 'hull-merchant';
+    const enemySail: SailKey =
+      this.enemyKind === 'pirate' ? 'sail-red' : this.enemyKind === 'navy' ? 'sail-blue' : 'sail-white';
+    this.enemy = this.makeShip(enemyHull, enemySail, this.flagFor(this.enemyNation), 900, 550, Math.PI, this.pickEnemyStats());
   }
 
-  private pickEnemyStats(): Omit<CombatShip, 'sprite' | 'heading' | 'speed' | 'reload'> {
+  private pickEnemyStats(): Omit<CombatShip, 'ship' | 'heading' | 'speed' | 'reload'> {
     if (this.enemyKind === 'merchant') {
       const s = SHIPS.brig;
       return { hull: s.hullMax, sail: s.sailMax, crew: 25, hullMax: s.hullMax, sailMax: s.sailMax, crewMax: 40, cannons: 8 };
@@ -104,15 +125,18 @@ export class NavalBattleScene extends Phaser.Scene {
   }
 
   private makeShip(
-    tex: string,
+    hull: HullKey,
+    sail: SailKey,
+    flag: FlagKey,
     x: number,
     y: number,
     heading: number,
-    stats: Omit<CombatShip, 'sprite' | 'heading' | 'speed' | 'reload'>,
+    stats: Omit<CombatShip, 'ship' | 'heading' | 'speed' | 'reload'>,
   ): CombatShip {
-    const sprite = this.add.image(x, y, tex).setScale(1.5).setDepth(5);
-    sprite.setRotation(heading + Math.PI / 2);
-    return { sprite, heading, speed: 0.04, reload: 0, ...stats };
+    const ship = new ShipGraphic(this, x, y, { hull, sail, flag, scale: 1.8 });
+    ship.setDepth(5);
+    ship.update(heading, this.windDir);
+    return { ship, heading, speed: 0.04, reload: 1500, ...stats };
   }
 
   private createHudOverlay(): void {
@@ -157,7 +181,6 @@ export class NavalBattleScene extends Phaser.Scene {
     this.fireButton = btn('FIRE', this.scale.width - 80, yBottom - 56, 0x7a2e0e, () => this.playerFire());
     this.boardButton = btn('BOARD', this.scale.width - 80, yBottom, 0xb99137, () => this.attemptBoard());
     btn('FLEE', 70, yBottom - 56, 0x555555, () => this.flee());
-    this.scale.on('resize', () => this.layoutButtons());
     this.layoutButtons();
     this.refreshAmmoButtons();
   }
@@ -186,8 +209,8 @@ export class NavalBattleScene extends Phaser.Scene {
       vibrate('warn');
       return;
     }
-    const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, this.enemy.sprite.x, this.enemy.sprite.y);
-    if (dist > 240) {
+    const dist = Phaser.Math.Distance.Between(this.player.ship.x, this.player.ship.y, this.enemy.ship.x, this.enemy.ship.y);
+    if (dist > 260) {
       this.showHint('Túl messze!');
       return;
     }
@@ -196,14 +219,14 @@ export class NavalBattleScene extends Phaser.Scene {
   }
 
   private relativeBroadside(ship: CombatShip, other: CombatShip): number {
-    const angleTo = Math.atan2(other.sprite.y - ship.sprite.y, other.sprite.x - ship.sprite.x);
+    const angleTo = Math.atan2(other.ship.y - ship.ship.y, other.ship.x - ship.ship.x);
     const rel = Phaser.Math.Angle.Wrap(angleTo - ship.heading);
     return Math.abs(Math.sin(rel));
   }
 
   private volley(attacker: CombatShip, target: CombatShip, ammo: Ammo): void {
-    const origin = new Phaser.Math.Vector2(attacker.sprite.x, attacker.sprite.y);
-    const dst = new Phaser.Math.Vector2(target.sprite.x, target.sprite.y);
+    const origin = new Phaser.Math.Vector2(attacker.ship.x, attacker.ship.y);
+    const dst = new Phaser.Math.Vector2(target.ship.x, target.ship.y);
     const shots = Math.max(2, Math.floor(attacker.cannons / 3));
     const tex = ammo === 'round' ? 'cannonball-round' : ammo === 'chain' ? 'cannonball-chain' : 'cannonball-grape';
     for (let i = 0; i < shots; i++) {
@@ -233,7 +256,7 @@ export class NavalBattleScene extends Phaser.Scene {
   }
 
   private hitChance(attacker: CombatShip, target: CombatShip): number {
-    const dist = Phaser.Math.Distance.Between(attacker.sprite.x, attacker.sprite.y, target.sprite.x, target.sprite.y);
+    const dist = Phaser.Math.Distance.Between(attacker.ship.x, attacker.ship.y, target.ship.x, target.ship.y);
     const base = Phaser.Math.Clamp(1 - (dist - 80) / 180, 0.25, 0.95);
     const side = this.relativeBroadside(attacker, target);
     return Phaser.Math.Clamp(base * (0.4 + 0.6 * side), 0.1, 0.95);
@@ -243,8 +266,8 @@ export class NavalBattleScene extends Phaser.Scene {
     if (ammo === 'round') target.hull = Math.max(0, target.hull - Phaser.Math.Between(4, 10));
     else if (ammo === 'chain') target.sail = Math.max(0, target.sail - Phaser.Math.Between(4, 10));
     else target.crew = Math.max(0, target.crew - Phaser.Math.Between(2, 6));
-    target.sprite.setTint(0xff8080);
-    this.time.delayedCall(100, () => target.sprite.clearTint());
+    target.ship.setTint(0xff8080);
+    this.time.delayedCall(100, () => target.ship.clearTint());
   }
 
   private boom(x: number, y: number): void {
@@ -254,13 +277,10 @@ export class NavalBattleScene extends Phaser.Scene {
 
   private attemptBoard(): void {
     if (this.ended) return;
-    const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, this.enemy.sprite.x, this.enemy.sprite.y);
-    if (dist > 60) {
+    const dist = Phaser.Math.Distance.Between(this.player.ship.x, this.player.ship.y, this.enemy.ship.x, this.enemy.ship.y);
+    if (dist > 70) {
       this.showHint('Közelebb!');
       return;
-    }
-    if (this.enemy.crew > this.player.crew * 1.4) {
-      this.showHint('Túl sokan vannak, sanszos a párbaj!');
     }
     this.ended = true;
     this.scene.start('Duel', { enemyCrew: this.enemy.crew, enemyKind: this.enemyKind });
@@ -313,11 +333,10 @@ export class NavalBattleScene extends Phaser.Scene {
   update(_t: number, deltaMs: number): void {
     this.advanceShip(this.player, deltaMs, this.playerHeadingInput());
     this.aiControl(this.enemy, deltaMs);
-    this.turnHint.text && this.turnHint.text.length > 0 ? null : null;
     const pb = this.relativeBroadside(this.player, this.enemy);
     if (!this.ended) {
-      const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, this.enemy.sprite.x, this.enemy.sprite.y);
-      this.turnHint.setText(pb < 0.35 ? 'Fordulj oldalra!' : dist > 240 ? 'Közeledj…' : 'Broadside!');
+      const dist = Phaser.Math.Distance.Between(this.player.ship.x, this.player.ship.y, this.enemy.ship.x, this.enemy.ship.y);
+      this.turnHint.setText(pb < 0.35 ? 'Fordulj oldalra!' : dist > 260 ? 'Közeledj…' : 'Broadside!');
     }
     this.checkEnd();
   }
@@ -325,12 +344,12 @@ export class NavalBattleScene extends Phaser.Scene {
   private playerHeadingInput(): number | null {
     const p = this.input.activePointer;
     if (!p.isDown) return null;
-    const w = this.cameras.main.getWorldPoint(p.x, p.y);
-    const topHudLimit = 80;
+    const topLimit = 80;
     const bottomLimit = this.scale.height - 130;
-    if (p.y < topHudLimit || p.y > bottomLimit) return null;
-    const dx = w.x - this.player.sprite.x;
-    const dy = w.y - this.player.sprite.y;
+    if (p.y < topLimit || p.y > bottomLimit) return null;
+    const w = this.cameras.main.getWorldPoint(p.x, p.y);
+    const dx = w.x - this.player.ship.x;
+    const dy = w.y - this.player.ship.y;
     if (Math.hypot(dx, dy) < 30) return null;
     return Math.atan2(dy, dx);
   }
@@ -343,19 +362,20 @@ export class NavalBattleScene extends Phaser.Scene {
     const windFactor = 0.5 + 0.5 * Math.cos(s.heading - this.windDir) * this.windStrength;
     const sailFactor = s.sail / s.sailMax;
     const speed = s.speed * (0.5 + 0.5 * windFactor) * (0.4 + 0.6 * sailFactor);
-    s.sprite.x = Phaser.Math.Clamp(s.sprite.x + Math.cos(s.heading) * speed * dt, 40, 1560);
-    s.sprite.y = Phaser.Math.Clamp(s.sprite.y + Math.sin(s.heading) * speed * dt, 40, 1160);
-    s.sprite.setRotation(s.heading + Math.PI / 2);
+    const nx = Phaser.Math.Clamp(s.ship.x + Math.cos(s.heading) * speed * dt, 40, 1560);
+    const ny = Phaser.Math.Clamp(s.ship.y + Math.sin(s.heading) * speed * dt, 40, 1160);
+    s.ship.setPosition(nx, ny);
+    s.ship.update(s.heading, this.windDir);
   }
 
   private aiControl(s: CombatShip, dt: number): void {
-    const target = Math.atan2(this.player.sprite.y - s.sprite.y, this.player.sprite.x - s.sprite.x) + Math.PI / 2;
+    const target = Math.atan2(this.player.ship.y - s.ship.y, this.player.ship.x - s.ship.x) + Math.PI / 2;
     this.advanceShip(s, dt, target);
     s.reload -= dt;
     if (s.reload <= 0) {
       const broadside = this.relativeBroadside(s, this.player);
-      const dist = Phaser.Math.Distance.Between(s.sprite.x, s.sprite.y, this.player.sprite.x, this.player.sprite.y);
-      if (broadside > 0.4 && dist < 220) {
+      const dist = Phaser.Math.Distance.Between(s.ship.x, s.ship.y, this.player.ship.x, this.player.ship.y);
+      if (broadside > 0.4 && dist < 240) {
         this.volley(s, this.player, Math.random() < 0.5 ? 'round' : 'chain');
         s.reload = 1700 + Math.random() * 1200;
       }
