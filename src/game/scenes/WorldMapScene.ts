@@ -4,7 +4,7 @@ import { WindSystem } from '@/game/systems/WindSystem';
 import { bus } from '@/game/EventBus';
 import { useGame } from '@/state/gameStore';
 import { SHIPS } from '@/game/data/ships';
-import { ShipGraphic, type FlagKey, type HullKey, type SailTheme } from '@/game/entities/ShipGraphic';
+import { ShipGraphic, type ShipKind } from '@/game/entities/ShipGraphic';
 
 const WORLD_W = 820;
 const WORLD_H = 620;
@@ -201,38 +201,22 @@ export class WorldMapScene extends Phaser.Scene {
     )[n];
   }
 
-  private flagFor(n: NationId): FlagKey {
-    const map: Record<NationId, FlagKey> = {
-      england: 'flag-england',
-      spain: 'flag-spain',
-      france: 'flag-france',
-      netherlands: 'flag-netherlands',
-      pirate: 'flag-pirate',
-    };
-    return map[n];
-  }
-
   private spawnPlayer(): void {
     const start = PORTS[0]!;
-    const career = useGame.getState().career;
     this.player = new ShipGraphic(this, start.x + 42, start.y + 42, {
-      hull: 'hull-player',
-      sailTheme: 'canvas',
-      flag: this.flagFor(career.nation === 'pirate' ? 'pirate' : career.nation),
-      scale: 1.2,
+      kind: 'ship-player',
+      scale: 0.42,
     });
     this.player.setDepth(5);
-    this.heading = -Math.PI / 4;
+    this.heading = 0;
   }
 
   private spawnEnemies(): void {
     const rng = () => Math.random();
     for (let i = 0; i < 7; i++) {
       const kind = rng() < 0.5 ? 'merchant' : rng() < 0.5 ? 'pirate' : 'navy';
-      const hull: HullKey =
-        kind === 'pirate' ? 'hull-enemy' : kind === 'navy' ? 'hull-navy' : 'hull-merchant';
-      const sailTheme: SailTheme =
-        kind === 'pirate' ? 'enemy' : kind === 'navy' ? 'navy' : 'canvas';
+      const shipKind: ShipKind =
+        kind === 'pirate' ? 'ship-enemy' : kind === 'navy' ? 'ship-navy' : 'ship-merchant';
       const nation =
         kind === 'pirate'
           ? 'pirate'
@@ -244,7 +228,7 @@ export class WorldMapScene extends Phaser.Scene {
         y = 60 + rng() * (WORLD_H - 120);
         if (!this.insideLand(x, y)) break;
       }
-      const ship = new ShipGraphic(this, x, y, { hull, sailTheme, flag: this.flagFor(nation), scale: 1 });
+      const ship = new ShipGraphic(this, x, y, { kind: shipKind, scale: 0.36 });
       ship.setDepth(4);
       this.enemies.push({ ship, heading: rng() * Math.PI * 2, speed: 0.22 + rng() * 0.2, kind, nation });
     }
@@ -349,8 +333,11 @@ export class WorldMapScene extends Phaser.Scene {
     return false;
   }
 
+  private lastDt = 16;
+
   update(_time: number, deltaMs: number): void {
     const dt = deltaMs;
+    this.lastDt = dt;
     this.wind.update(dt);
     this.updateWindArrows();
     this.updatePlayer(dt);
@@ -428,7 +415,7 @@ export class WorldMapScene extends Phaser.Scene {
         }
       }
     }
-    this.player.update(this.heading, this.wind.state.dir);
+    this.player.update(this.heading, this.wind.state.dir, this.lastDt);
   }
 
   private spawnWake(x: number, y: number): void {
@@ -461,7 +448,7 @@ export class WorldMapScene extends Phaser.Scene {
         e.ship.setPosition(nextX, nextY);
         if (Math.random() < 0.002) e.heading += (Math.random() - 0.5) * 0.8;
       }
-      e.ship.update(e.heading, this.wind.state.dir);
+      e.ship.update(e.heading, this.wind.state.dir, dt);
     }
   }
 

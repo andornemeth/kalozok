@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 
 /**
- * Minden sprite procedurálisan kerül legenerálásra, hogy ne kelljen binárisan szállítani assetet.
- * A hajótest/vitorla/zászló külön textúra: a vitorlák egyenként reagálhatnak a szélre.
+ * Minden sprite procedurálisan kerül legenerálásra, ne kelljen binárisat szállítani.
+ * A hajók OLDALNÉZETI részletes 3-árbocos rajzok — nem forognak, csak horizontális flippel
+ * fordulnak menetirány szerint (C64 Pirates!-stílus).
  */
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -10,32 +11,57 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.makeHull('hull-player', 0x5c3a1e, 0x8a5a2b, 0xe0b24f, 0xfbf5e3);
-    this.makeHull('hull-enemy', 0x2e1717, 0x5c2a22, 0xb94a3b, 0xe8d28a);
-    this.makeHull('hull-navy', 0x1c2b3f, 0x2d4466, 0x4f8bff, 0xfbf5e3);
-    this.makeHull('hull-merchant', 0x3a5a3a, 0x4a7a5a, 0x94cfd2, 0xfbf5e3);
-
-    this.makeSquareSail('sail-main', 24, 30, 0xfbf5e3, 0xd9c99a, 0x9a8a5f);
-    this.makeSquareSail('sail-fore', 20, 24, 0xfbf5e3, 0xd9c99a, 0x9a8a5f);
-    this.makeSquareSail('sail-mizzen', 22, 26, 0xfbf5e3, 0xd9c99a, 0x9a8a5f);
-
-    this.makeSquareSail('sail-enemy-main', 24, 30, 0xffb7a5, 0xb94a3b, 0x7a2e0e);
-    this.makeSquareSail('sail-enemy-fore', 20, 24, 0xffb7a5, 0xb94a3b, 0x7a2e0e);
-    this.makeSquareSail('sail-enemy-mizzen', 22, 26, 0xffb7a5, 0xb94a3b, 0x7a2e0e);
-
-    this.makeSquareSail('sail-navy-main', 24, 30, 0xd8e4ff, 0x8fa9d9, 0x4f6ba6);
-    this.makeSquareSail('sail-navy-fore', 20, 24, 0xd8e4ff, 0x8fa9d9, 0x4f6ba6);
-    this.makeSquareSail('sail-navy-mizzen', 22, 26, 0xd8e4ff, 0x8fa9d9, 0x4f6ba6);
-
-    this.makeFlag('flag-pirate', 0x0a0a0a, 0xfbf5e3);
-    this.makeFlag('flag-england', 0xd04040, 0xfbf5e3);
-    this.makeFlag('flag-spain', 0xf2c94c, 0xd04040);
-    this.makeFlag('flag-france', 0x4f8bff, 0xfbf5e3);
-    this.makeFlag('flag-netherlands', 0xff8c42, 0xfbf5e3);
+    this.makeSideShip('ship-player', {
+      hullDark: 0x3a2010,
+      hullMid: 0x6b3e1f,
+      hullLight: 0x8b5a2b,
+      goldTrim: 0xe0b24f,
+      sailLight: 0xfbf5e3,
+      sailMid: 0xd9c99a,
+      sailDark: 0x8a7a4a,
+      mast: 0x3a2a1a,
+      flag: 0x0a0a0a,
+      flagStripe: 0xfbf5e3,
+    });
+    this.makeSideShip('ship-enemy', {
+      hullDark: 0x2a1515,
+      hullMid: 0x5c2a22,
+      hullLight: 0x8a3d2e,
+      goldTrim: 0xb94a3b,
+      sailLight: 0xffd7c7,
+      sailMid: 0xd99a8a,
+      sailDark: 0x7a2e0e,
+      mast: 0x2a1515,
+      flag: 0x0a0a0a,
+      flagStripe: 0xff6a3d,
+    });
+    this.makeSideShip('ship-navy', {
+      hullDark: 0x14213a,
+      hullMid: 0x2d4466,
+      hullLight: 0x4f6ba6,
+      goldTrim: 0xe0b24f,
+      sailLight: 0xfbf5e3,
+      sailMid: 0xc6d5ee,
+      sailDark: 0x4f6ba6,
+      mast: 0x2a2a2a,
+      flag: 0xd04040,
+      flagStripe: 0xfbf5e3,
+    });
+    this.makeSideShip('ship-merchant', {
+      hullDark: 0x2d3e1e,
+      hullMid: 0x5a7a3d,
+      hullLight: 0x7a9a5a,
+      goldTrim: 0xbfa24f,
+      sailLight: 0xfbf5e3,
+      sailMid: 0xd9c99a,
+      sailDark: 0x6a5a3a,
+      mast: 0x3a2a1a,
+      flag: 0xff8c42,
+      flagStripe: 0xfbf5e3,
+    });
 
     this.makeWake('wake');
     this.makeTargetMarker('target-marker');
-    this.makeShadow('ship-shadow');
 
     this.makePortMarker('port-eng', 0xd04040);
     this.makePortMarker('port-esp', 0xf2c94c);
@@ -56,114 +82,160 @@ export class PreloadScene extends Phaser.Scene {
     this.scene.start('World');
   }
 
-  private makeHull(key: string, shadow: number, sideDark: number, side: number, deck: number): void {
-    const w = 72;
-    const h = 28;
+  /** Oldalnézeti háromárbocos hajó: 3 árboc × (top-gallant + topsail + main) + jib + spanker + bowsprit + zászló. */
+  private makeSideShip(
+    key: string,
+    c: {
+      hullDark: number;
+      hullMid: number;
+      hullLight: number;
+      goldTrim: number;
+      sailLight: number;
+      sailMid: number;
+      sailDark: number;
+      mast: number;
+      flag: number;
+      flagStripe: number;
+    },
+  ): void {
+    const w = 112;
+    const h = 96;
     const g = this.add.graphics();
-    // Hajótest sziluett — hegyes orr jobbra, lekerekített far balra
-    const path = new Phaser.Geom.Polygon([
-      10, 3,        // far-felső
-      w - 10, 4,    // orr közelében felül
-      w - 2, h / 2, // orr csúcsa
-      w - 10, h - 4,
-      10, h - 3,
-      3, h / 2,
-    ]);
-    g.fillStyle(shadow, 1);
-    g.fillPoints(path.points, true);
-    // Oldal (sötét csík)
-    g.fillStyle(sideDark, 1);
-    g.fillPoints(
-      [
-        { x: 12, y: 5 },
-        { x: w - 12, y: 6 },
-        { x: w - 4, y: h / 2 },
-        { x: w - 12, y: h - 6 },
-        { x: 12, y: h - 5 },
-        { x: 5, y: h / 2 },
-      ],
-      true,
-    );
-    // Oldal világosabb pixelsor
-    g.fillStyle(side, 1);
-    g.fillRect(14, h / 2 - 1, w - 28, 2);
-    // Lőrések — apró fekete pixelek oldalt
-    g.fillStyle(0x04141a, 1);
-    for (let i = 0; i < 5; i++) {
-      g.fillRect(18 + i * 7, h / 2 - 5, 2, 2);
-      g.fillRect(18 + i * 7, h / 2 + 3, 2, 2);
-    }
-    // Fedélzet (belső világosabb rész)
-    g.fillStyle(deck, 1);
-    g.fillPoints(
-      [
-        { x: 16, y: 8 },
-        { x: w - 16, y: 9 },
-        { x: w - 12, y: h / 2 },
-        { x: w - 16, y: h - 9 },
-        { x: 16, y: h - 8 },
-        { x: 12, y: h / 2 },
-      ],
-      true,
-    );
-    // Fedélzeti palánkok
-    g.fillStyle(shadow, 0.6);
-    for (let i = 0; i < 6; i++) {
-      g.fillRect(18 + i * 8, h / 2 - 4, 1, 8);
-    }
-    // Orrdísz (bowsprit)
-    g.fillStyle(shadow, 1);
-    g.fillTriangle(w - 2, h / 2 - 1, w + 2, h / 2, w - 2, h / 2 + 1);
-    // Árbocok helye (fekete pöttyök)
-    g.fillStyle(0x04141a, 1);
-    g.fillCircle(w / 2 - 18, h / 2, 2.5);
-    g.fillCircle(w / 2, h / 2, 3);
-    g.fillCircle(w / 2 + 18, h / 2, 2.5);
-    g.generateTexture(key, w + 4, h);
-    g.destroy();
-  }
 
-  private makeSquareSail(key: string, w: number, h: number, light: number, mid: number, dark: number): void {
-    const g = this.add.graphics();
-    // Keret (kötél/spanyolgallér)
-    g.fillStyle(0x3a2a1a, 1);
-    g.fillRect(0, 0, w, 2);
-    g.fillRect(0, h - 2, w, 2);
-    // Vitorla alap (kicsit lekerekített, bufflal)
-    g.fillStyle(mid, 1);
-    g.fillRoundedRect(1, 2, w - 2, h - 4, 2);
-    // Billow — függőleges redők, világosabb/sötétebb sávokkal
-    g.fillStyle(light, 1);
-    g.fillRect(3, 3, w - 6, h - 6);
-    g.fillStyle(mid, 0.55);
-    g.fillRect(4, 3, 2, h - 6);
-    g.fillRect(w - 6, 3, 2, h - 6);
-    g.fillRect(w / 2 - 1, 3, 2, h - 6);
-    // Árnyék él
-    g.fillStyle(dark, 0.9);
-    g.fillRect(1, h - 3, w - 2, 1);
-    g.fillRect(1, 2, w - 2, 1);
-    // Kötélzet (két ferde vékony vonal)
-    g.lineStyle(1, 0x3a2a1a, 0.7);
-    g.lineBetween(1, 3, w - 1, h - 3);
-    g.lineBetween(w - 1, 3, 1, h - 3);
+    // Árboc-x pozíciók: orr jobbra néz alapértelmezettként (bow = jobbra)
+    const mizzen = 26; // hátulsó
+    const main = 54; // fő árboc
+    const fore = 82; // orr felé
+
+    // Rigging háttér (vékony keresztvonalak a testtől az árboc-csúcsig)
+    g.lineStyle(1, c.mast, 0.7);
+    g.lineBetween(8, 68, mizzen, 6);
+    g.lineBetween(mizzen, 6, main, 2);
+    g.lineBetween(main, 2, fore, 6);
+    g.lineBetween(fore, 6, 104, 68);
+    g.lineBetween(mizzen, 30, main, 14);
+    g.lineBetween(main, 14, fore, 30);
+    // Árbocok
+    g.fillStyle(c.mast, 1);
+    g.fillRect(mizzen - 1, 6, 2, 66);
+    g.fillRect(main - 1, 2, 2, 70);
+    g.fillRect(fore - 1, 6, 2, 66);
+
+    // Vitorlák: minden árbocon top-gallant (legfelül, kicsi) + topsail + main sail
+    const maxOffset = 3; // enyhe szélnek fordulás, ahogy a C64 képen is balra dől
+    // Mizzen (hátulsó)
+    this.drawSquareSail(g, mizzen - 11, 10, 22, 14, c, maxOffset);
+    this.drawSquareSail(g, mizzen - 14, 28, 28, 18, c, maxOffset);
+    this.drawSquareSail(g, mizzen - 16, 48, 32, 22, c, maxOffset);
+    // Main
+    this.drawSquareSail(g, main - 12, 6, 24, 14, c, maxOffset);
+    this.drawSquareSail(g, main - 15, 24, 30, 20, c, maxOffset);
+    this.drawSquareSail(g, main - 18, 46, 36, 24, c, maxOffset);
+    // Fore
+    this.drawSquareSail(g, fore - 11, 10, 22, 14, c, maxOffset);
+    this.drawSquareSail(g, fore - 14, 28, 28, 18, c, maxOffset);
+    this.drawSquareSail(g, fore - 16, 48, 32, 22, c, maxOffset);
+
+    // Jib (háromszög vitorla orron, bowsprit felett)
+    g.fillStyle(c.sailMid, 1);
+    g.fillTriangle(fore + 2, 34, 108, 68, fore + 2, 64);
+    g.fillStyle(c.sailLight, 1);
+    g.fillTriangle(fore + 4, 36, 106, 66, fore + 4, 62);
+
+    // Spanker (trapéz vitorla hátul, mizzen mögött)
+    g.fillStyle(c.sailMid, 1);
+    g.fillTriangle(8, 68, mizzen - 2, 30, mizzen - 2, 66);
+    g.fillStyle(c.sailLight, 1);
+    g.fillTriangle(10, 66, mizzen - 4, 34, mizzen - 4, 64);
+
+    // Hajótest (oldalnézet) — íves aljjal
+    // Árnyék/külső sziluett
+    const hullOutline: Phaser.Types.Math.Vector2Like[] = [
+      { x: 2, y: 68 },
+      { x: 110, y: 68 },
+      { x: 104, y: 86 },
+      { x: 90, y: 92 },
+      { x: 22, y: 92 },
+      { x: 8, y: 86 },
+    ];
+    g.fillStyle(c.hullDark, 1);
+    g.fillPoints(hullOutline, true);
+    // Középsáv
+    const hullMid: Phaser.Types.Math.Vector2Like[] = [
+      { x: 4, y: 70 },
+      { x: 108, y: 70 },
+      { x: 102, y: 84 },
+      { x: 90, y: 90 },
+      { x: 22, y: 90 },
+      { x: 10, y: 84 },
+    ];
+    g.fillStyle(c.hullMid, 1);
+    g.fillPoints(hullMid, true);
+    // Világos csík
+    g.fillStyle(c.hullLight, 1);
+    g.fillRect(6, 74, 100, 2);
+    // Aranycsík
+    g.fillStyle(c.goldTrim, 1);
+    g.fillRect(6, 76, 100, 1);
+    // Lőrések (portholes)
+    g.fillStyle(0x04141a, 1);
+    for (let i = 0; i < 7; i++) {
+      g.fillRect(14 + i * 13, 80, 4, 4);
+    }
+    // Fedélzeti korlát (deck rail)
+    g.fillStyle(c.goldTrim, 1);
+    for (let i = 0; i < 12; i++) {
+      g.fillRect(10 + i * 8, 64, 1, 4);
+    }
+    g.fillStyle(c.hullDark, 1);
+    g.fillRect(6, 64, 100, 1);
+
+    // Bowsprit (orrdísz) jobbra kinyúlva
+    g.fillStyle(c.mast, 1);
+    g.fillRect(106, 66, 6, 2);
+
+    // Zászló a fő árboc csúcsán
+    g.fillStyle(c.flag, 1);
+    g.fillTriangle(main + 1, 2, main + 12, 4, main + 1, 6);
+    g.fillStyle(c.flagStripe, 1);
+    g.fillRect(main + 3, 3, 5, 1);
+
     g.generateTexture(key, w, h);
     g.destroy();
   }
 
-  private makeFlag(key: string, base: number, stripe: number): void {
-    const w = 14;
-    const h = 8;
-    const g = this.add.graphics();
-    g.fillStyle(0x04141a, 1);
-    g.fillRect(0, 0, 1, h);
-    g.fillStyle(base, 1);
-    // Háromszög zászló
-    g.fillTriangle(1, 0, w - 1, h / 2, 1, h);
-    g.fillStyle(stripe, 1);
-    g.fillRect(2, h / 2 - 1, w - 5, 1);
-    g.generateTexture(key, w, h);
-    g.destroy();
+  private drawSquareSail(
+    g: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    sw: number,
+    sh: number,
+    c: { sailLight: number; sailMid: number; sailDark: number; mast: number },
+    sideOffset: number,
+  ): void {
+    // Keresztrúd (yard)
+    g.fillStyle(c.mast, 1);
+    g.fillRect(x - 1, y - 1, sw + 2, 2);
+    // Billowing rectangle — enyhén eltolva oldalra (C64 kép: vitorlák kissé jobbra bufflanak)
+    const ox = sideOffset;
+    g.fillStyle(c.sailDark, 1);
+    g.fillRect(x + ox, y + 1, sw, sh - 1);
+    g.fillStyle(c.sailMid, 1);
+    g.fillRect(x + ox + 1, y + 2, sw - 2, sh - 3);
+    g.fillStyle(c.sailLight, 1);
+    g.fillRect(x + ox + 2, y + 3, sw - 4, sh - 5);
+    // Függőleges redők (pleats)
+    g.fillStyle(c.sailMid, 0.55);
+    g.fillRect(x + ox + 4, y + 3, 1, sh - 5);
+    g.fillRect(x + ox + sw - 5, y + 3, 1, sh - 5);
+    if (sw > 20) g.fillRect(x + ox + sw / 2 - 1, y + 3, 1, sh - 5);
+    // Alsó árnyék
+    g.fillStyle(c.sailDark, 0.7);
+    g.fillRect(x + ox + 1, y + sh - 2, sw - 2, 1);
+    // Kötélzet oldalt (bowlines)
+    g.lineStyle(1, c.mast, 0.6);
+    g.lineBetween(x + ox, y + 1, x + ox, y + sh);
+    g.lineBetween(x + ox + sw, y + 1, x + ox + sw, y + sh);
   }
 
   private makeWake(key: string): void {
@@ -171,14 +243,6 @@ export class PreloadScene extends Phaser.Scene {
     g.fillStyle(0xffffff, 1);
     g.fillCircle(4, 4, 4);
     g.generateTexture(key, 8, 8);
-    g.destroy();
-  }
-
-  private makeShadow(key: string): void {
-    const g = this.add.graphics();
-    g.fillStyle(0x04141a, 0.5);
-    g.fillEllipse(36, 14, 72, 22);
-    g.generateTexture(key, 72, 28);
     g.destroy();
   }
 
@@ -194,17 +258,14 @@ export class PreloadScene extends Phaser.Scene {
 
   private makePortMarker(key: string, color: number): void {
     const g = this.add.graphics();
-    // Apró épület bástyával
     g.fillStyle(0x04141a, 1);
     g.fillRoundedRect(0, 6, 26, 18, 3);
     g.fillStyle(color, 1);
     g.fillRoundedRect(2, 8, 22, 14, 2);
-    // Ablakok
     g.fillStyle(0xfbf5e3, 1);
     g.fillRect(6, 12, 3, 3);
     g.fillRect(11, 12, 3, 3);
     g.fillRect(16, 12, 3, 3);
-    // Zászlórúd + zászló
     g.fillStyle(0x04141a, 1);
     g.fillRect(12, 0, 2, 10);
     g.fillStyle(0xfbf5e3, 1);
@@ -263,10 +324,8 @@ export class PreloadScene extends Phaser.Scene {
 
   private makePalm(key: string): void {
     const g = this.add.graphics();
-    // Törzs
     g.fillStyle(0x4a2e1a, 1);
     g.fillRect(5, 6, 2, 6);
-    // Levelek (4 irányba kisugárzó)
     g.fillStyle(0x2d5a2d, 1);
     g.fillTriangle(6, 2, 11, 4, 6, 6);
     g.fillTriangle(6, 2, 1, 4, 6, 6);

@@ -3,7 +3,7 @@ import { bus } from '@/game/EventBus';
 import { useGame } from '@/state/gameStore';
 import { SHIPS } from '@/game/data/ships';
 import { vibrate } from '@/utils/haptics';
-import { ShipGraphic, type HullKey, type SailTheme, type FlagKey } from '@/game/entities/ShipGraphic';
+import { ShipGraphic, type ShipKind } from '@/game/entities/ShipGraphic';
 import type { NationId } from '@/game/data/ports';
 
 type Ammo = 'round' | 'chain' | 'grape';
@@ -35,7 +35,6 @@ export class NavalBattleScene extends Phaser.Scene {
   private boardButton!: Phaser.GameObjects.Container;
   private ammoButtons: Phaser.GameObjects.Container[] = [];
   private enemyKind: EnemyKind = 'pirate';
-  private enemyNation: NationId = 'pirate';
   private ended = false;
 
   constructor() {
@@ -44,7 +43,7 @@ export class NavalBattleScene extends Phaser.Scene {
 
   init(data: { enemyKind?: EnemyKind; enemyNation?: NationId }): void {
     this.enemyKind = data.enemyKind ?? 'pirate';
-    this.enemyNation = data.enemyNation ?? 'pirate';
+    void data.enemyNation;
     this.ended = false;
   }
 
@@ -72,43 +71,22 @@ export class NavalBattleScene extends Phaser.Scene {
     this.cameras.main.centerOn(800, 600);
   }
 
-  private flagFor(n: NationId): FlagKey {
-    const map: Record<NationId, FlagKey> = {
-      england: 'flag-england',
-      spain: 'flag-spain',
-      france: 'flag-france',
-      netherlands: 'flag-netherlands',
-      pirate: 'flag-pirate',
-    };
-    return map[n];
-  }
-
   private createCombatants(): void {
     const gameState = useGame.getState();
     const cls = gameState.ship.class;
     const stats = SHIPS[cls];
-    this.player = this.makeShip(
-      'hull-player',
-      'canvas',
-      this.flagFor(gameState.career.nation),
-      700,
-      650,
-      0,
-      {
-        hull: gameState.ship.hull,
-        sail: gameState.ship.sail,
-        crew: gameState.ship.crew,
-        hullMax: stats.hullMax,
-        sailMax: stats.sailMax,
-        crewMax: stats.crewMax,
-        cannons: stats.cannons,
-      },
-    );
-    const enemyHull: HullKey =
-      this.enemyKind === 'pirate' ? 'hull-enemy' : this.enemyKind === 'navy' ? 'hull-navy' : 'hull-merchant';
-    const enemySail: SailTheme =
-      this.enemyKind === 'pirate' ? 'enemy' : this.enemyKind === 'navy' ? 'navy' : 'canvas';
-    this.enemy = this.makeShip(enemyHull, enemySail, this.flagFor(this.enemyNation), 900, 550, Math.PI, this.pickEnemyStats());
+    this.player = this.makeShip('ship-player', 700, 650, 0, {
+      hull: gameState.ship.hull,
+      sail: gameState.ship.sail,
+      crew: gameState.ship.crew,
+      hullMax: stats.hullMax,
+      sailMax: stats.sailMax,
+      crewMax: stats.crewMax,
+      cannons: stats.cannons,
+    });
+    const enemyKind: ShipKind =
+      this.enemyKind === 'pirate' ? 'ship-enemy' : this.enemyKind === 'navy' ? 'ship-navy' : 'ship-merchant';
+    this.enemy = this.makeShip(enemyKind, 900, 550, Math.PI, this.pickEnemyStats());
   }
 
   private pickEnemyStats(): Omit<CombatShip, 'ship' | 'heading' | 'speed' | 'reload'> {
@@ -125,15 +103,13 @@ export class NavalBattleScene extends Phaser.Scene {
   }
 
   private makeShip(
-    hull: HullKey,
-    sailTheme: SailTheme,
-    flag: FlagKey,
+    kind: ShipKind,
     x: number,
     y: number,
     heading: number,
     stats: Omit<CombatShip, 'ship' | 'heading' | 'speed' | 'reload'>,
   ): CombatShip {
-    const ship = new ShipGraphic(this, x, y, { hull, sailTheme, flag, scale: 1.6 });
+    const ship = new ShipGraphic(this, x, y, { kind, scale: 0.8 });
     ship.setDepth(5);
     ship.update(heading, this.windDir);
     return { ship, heading, speed: 0.04, reload: 1500, ...stats };

@@ -35,8 +35,8 @@ export class DuelScene extends Phaser.Scene {
       .text(cx, 20, 'PÁRBAJ', { fontFamily: '"Press Start 2P"', fontSize: '16px', color: '#e0b24f' })
       .setOrigin(0.5, 0);
 
-    this.player = this.createDuelist(120, 200, 'player', 'hull-player', 80);
-    this.enemy = this.createDuelist(this.scale.width - 120, 200, 'captain', 'hull-enemy', 60 + Math.floor(Math.random() * 40));
+    this.player = this.createDuelist(120, 200, 'player', 'ship-player', 80);
+    this.enemy = this.createDuelist(this.scale.width - 120, 200, 'captain', 'ship-enemy', 60 + Math.floor(Math.random() * 40));
 
     this.turnText = this.add
       .text(cx, 120, 'A te köröd', {
