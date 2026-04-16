@@ -3,7 +3,7 @@ import { bus } from '@/game/EventBus';
 import { useGame } from '@/state/gameStore';
 import { SHIPS } from '@/game/data/ships';
 import { vibrate } from '@/utils/haptics';
-import { ShipGraphic, type HullKey, type SailKey, type FlagKey } from '@/game/entities/ShipGraphic';
+import { ShipGraphic, type HullKey, type SailTheme, type FlagKey } from '@/game/entities/ShipGraphic';
 import type { NationId } from '@/game/data/ports';
 
 type Ammo = 'round' | 'chain' | 'grape';
@@ -89,7 +89,7 @@ export class NavalBattleScene extends Phaser.Scene {
     const stats = SHIPS[cls];
     this.player = this.makeShip(
       'hull-player',
-      'sail-tan',
+      'canvas',
       this.flagFor(gameState.career.nation),
       700,
       650,
@@ -106,8 +106,8 @@ export class NavalBattleScene extends Phaser.Scene {
     );
     const enemyHull: HullKey =
       this.enemyKind === 'pirate' ? 'hull-enemy' : this.enemyKind === 'navy' ? 'hull-navy' : 'hull-merchant';
-    const enemySail: SailKey =
-      this.enemyKind === 'pirate' ? 'sail-red' : this.enemyKind === 'navy' ? 'sail-blue' : 'sail-white';
+    const enemySail: SailTheme =
+      this.enemyKind === 'pirate' ? 'enemy' : this.enemyKind === 'navy' ? 'navy' : 'canvas';
     this.enemy = this.makeShip(enemyHull, enemySail, this.flagFor(this.enemyNation), 900, 550, Math.PI, this.pickEnemyStats());
   }
 
@@ -126,14 +126,14 @@ export class NavalBattleScene extends Phaser.Scene {
 
   private makeShip(
     hull: HullKey,
-    sail: SailKey,
+    sailTheme: SailTheme,
     flag: FlagKey,
     x: number,
     y: number,
     heading: number,
     stats: Omit<CombatShip, 'ship' | 'heading' | 'speed' | 'reload'>,
   ): CombatShip {
-    const ship = new ShipGraphic(this, x, y, { hull, sail, flag, scale: 1.8 });
+    const ship = new ShipGraphic(this, x, y, { hull, sailTheme, flag, scale: 1.6 });
     ship.setDepth(5);
     ship.update(heading, this.windDir);
     return { ship, heading, speed: 0.04, reload: 1500, ...stats };

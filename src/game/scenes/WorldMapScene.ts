@@ -4,7 +4,7 @@ import { WindSystem } from '@/game/systems/WindSystem';
 import { bus } from '@/game/EventBus';
 import { useGame } from '@/state/gameStore';
 import { SHIPS } from '@/game/data/ships';
-import { ShipGraphic, type FlagKey, type HullKey, type SailKey } from '@/game/entities/ShipGraphic';
+import { ShipGraphic, type FlagKey, type HullKey, type SailTheme } from '@/game/entities/ShipGraphic';
 
 const WORLD_W = 820;
 const WORLD_H = 620;
@@ -49,6 +49,7 @@ export class WorldMapScene extends Phaser.Scene {
   private dayAccum = 0;
   private wakeAccum = 0;
   private wakes: Phaser.GameObjects.Image[] = [];
+  private cloudShadows: Phaser.GameObjects.Image[] = [];
 
   constructor() {
     super('World');
@@ -57,6 +58,7 @@ export class WorldMapScene extends Phaser.Scene {
   create(): void {
     this.drawWater();
     this.drawLandMasses();
+    this.spawnCloudShadows();
     this.spawnWindField();
     this.spawnPorts();
     this.spawnPlayer();
@@ -70,27 +72,91 @@ export class WorldMapScene extends Phaser.Scene {
 
   private drawWater(): void {
     const g = this.add.graphics();
-    g.fillStyle(0x0e4044, 1);
+    g.fillStyle(0x0a3338, 1);
     g.fillRect(0, 0, WORLD_W, WORLD_H);
+    // Dithered stipple — apró világos pixelek szabályos mintázatban
+    g.fillStyle(0x145f65, 0.8);
+    for (let y = 0; y < WORLD_H; y += 4) {
+      for (let x = (y / 4) % 2 === 0 ? 0 : 2; x < WORLD_W; x += 4) {
+        g.fillRect(x, y, 1, 1);
+      }
+    }
+    g.fillStyle(0x1a7f86, 0.5);
+    for (let y = 2; y < WORLD_H; y += 8) {
+      for (let x = 4; x < WORLD_W; x += 8) {
+        g.fillRect(x, y, 2, 1);
+      }
+    }
+    // Hullámcsúcsok
     const wave = this.add.graphics();
-    wave.lineStyle(1, 0x1a7f86, 0.35);
-    for (let y = 10; y < WORLD_H; y += 18) {
-      for (let x = 0; x < WORLD_W; x += 24) {
-        wave.lineBetween(x, y, x + 12, y);
+    wave.fillStyle(0xbfe2e4, 0.4);
+    for (let i = 0; i < 70; i++) {
+      const x = (i * 97) % WORLD_W;
+      const y = (i * 53) % WORLD_H;
+      if (!this.insideLand(x, y)) {
+        wave.fillRect(x, y, 3, 1);
+        wave.fillRect(x + 1, y + 1, 1, 1);
       }
     }
   }
 
   private drawLandMasses(): void {
-    const g = this.add.graphics();
-    g.fillStyle(0x6b4a2b, 1);
-    for (const [x1, y1, x2, y2] of ISLANDS) {
-      g.fillRoundedRect(x1, y1, x2 - x1, y2 - y1, 14);
-    }
+    const sand = this.add.graphics();
+    const mid = this.add.graphics();
     const grass = this.add.graphics();
-    grass.fillStyle(0x3a6d3a, 1);
+    const trees = this.add.graphics();
     for (const [x1, y1, x2, y2] of ISLANDS) {
-      grass.fillRoundedRect(x1 + 4, y1 + 4, x2 - x1 - 8, y2 - y1 - 8, 10);
+      const w = x2 - x1;
+      const h = y2 - y1;
+      const cx = (x1 + x2) / 2;
+      const cy = (y1 + y2) / 2;
+      // Organikus sziluett — poligon csomópontok lekerekített formán
+      const pts: Phaser.Types.Math.Vector2Like[] = [];
+      const steps = 14;
+      for (let i = 0; i < steps; i++) {
+        const a = (i / steps) * Math.PI * 2;
+        const bump = 0.85 + 0.3 * Math.sin(a * 3 + x1 * 0.03) + 0.2 * Math.cos(a * 5 + y1 * 0.05);
+        pts.push({ x: cx + (Math.cos(a) * w * 0.5 * bump), y: cy + (Math.sin(a) * h * 0.5 * bump) });
+      }
+      // Homok (külső)
+      sand.fillStyle(0xe8d28a, 1);
+      sand.fillPoints(pts, true);
+      // Közép (világos zöld / sötét homok átmenet)
+      const innerPts = pts.map((p) => ({ x: cx + (p.x - cx) * 0.82, y: cy + (p.y - cy) * 0.82 }));
+      mid.fillStyle(0x6b8f3d, 1);
+      mid.fillPoints(innerPts, true);
+      // Fű
+      const inner2 = pts.map((p) => ({ x: cx + (p.x - cx) * 0.66, y: cy + (p.y - cy) * 0.66 }));
+      grass.fillStyle(0x3a6d3a, 1);
+      grass.fillPoints(inner2, true);
+    }
+    // Pálmák + sziklák a szárazföldön
+    for (const [x1, y1, x2, y2] of ISLANDS) {
+      const w = x2 - x1;
+      const h = y2 - y1;
+      const count = Math.max(2, Math.floor((w * h) / 900));
+      for (let i = 0; i < count; i++) {
+        const rx = x1 + w * 0.2 + ((i * 37) % (w * 0.6));
+        const ry = y1 + h * 0.25 + ((i * 59) % (h * 0.5));
+        this.add.image(rx, ry, 'palm').setDepth(2);
+      }
+      // Nagyobb szigeteken egy hegy-szilette
+      if (w > 80 && h > 60) {
+        trees.fillStyle(0x5a4020, 1);
+        trees.fillTriangle((x1 + x2) / 2 - 10, (y1 + y2) / 2 + 4, (x1 + x2) / 2 + 10, (y1 + y2) / 2 + 4, (x1 + x2) / 2, (y1 + y2) / 2 - 10);
+        trees.fillStyle(0xfbf5e3, 1);
+        trees.fillTriangle((x1 + x2) / 2 - 3, (y1 + y2) / 2 - 4, (x1 + x2) / 2 + 3, (y1 + y2) / 2 - 4, (x1 + x2) / 2, (y1 + y2) / 2 - 10);
+      }
+    }
+  }
+
+  private spawnCloudShadows(): void {
+    for (let i = 0; i < 4; i++) {
+      const x = (i * 230 + 80) % WORLD_W;
+      const y = 40 + i * 150;
+      const s = this.add.image(x, y, 'cloud-shadow').setDepth(6).setAlpha(0.6);
+      s.setData('speed', 0.008 + Math.random() * 0.006);
+      this.cloudShadows.push(s);
     }
   }
 
@@ -151,9 +217,9 @@ export class WorldMapScene extends Phaser.Scene {
     const career = useGame.getState().career;
     this.player = new ShipGraphic(this, start.x + 42, start.y + 42, {
       hull: 'hull-player',
-      sail: 'sail-tan',
+      sailTheme: 'canvas',
       flag: this.flagFor(career.nation === 'pirate' ? 'pirate' : career.nation),
-      scale: 1.4,
+      scale: 1.2,
     });
     this.player.setDepth(5);
     this.heading = -Math.PI / 4;
@@ -165,8 +231,8 @@ export class WorldMapScene extends Phaser.Scene {
       const kind = rng() < 0.5 ? 'merchant' : rng() < 0.5 ? 'pirate' : 'navy';
       const hull: HullKey =
         kind === 'pirate' ? 'hull-enemy' : kind === 'navy' ? 'hull-navy' : 'hull-merchant';
-      const sail: SailKey =
-        kind === 'pirate' ? 'sail-red' : kind === 'navy' ? 'sail-blue' : 'sail-white';
+      const sailTheme: SailTheme =
+        kind === 'pirate' ? 'enemy' : kind === 'navy' ? 'navy' : 'canvas';
       const nation =
         kind === 'pirate'
           ? 'pirate'
@@ -178,7 +244,7 @@ export class WorldMapScene extends Phaser.Scene {
         y = 60 + rng() * (WORLD_H - 120);
         if (!this.insideLand(x, y)) break;
       }
-      const ship = new ShipGraphic(this, x, y, { hull, sail, flag: this.flagFor(nation), scale: 1.15 });
+      const ship = new ShipGraphic(this, x, y, { hull, sailTheme, flag: this.flagFor(nation), scale: 1 });
       ship.setDepth(4);
       this.enemies.push({ ship, heading: rng() * Math.PI * 2, speed: 0.22 + rng() * 0.2, kind, nation });
     }
@@ -302,8 +368,21 @@ export class WorldMapScene extends Phaser.Scene {
       this.refreshMinimap();
     }
     this.updateWakes(dt);
+    this.updateCloudShadows(dt);
     if (this.targetMarker && this.targetMarker.visible) {
       this.targetMarker.setRotation(this.targetMarker.rotation + 0.002 * dt);
+    }
+  }
+
+  private updateCloudShadows(dt: number): void {
+    for (const c of this.cloudShadows) {
+      const sp = c.getData('speed') as number;
+      c.x += Math.cos(this.wind.state.dir) * sp * dt;
+      c.y += Math.sin(this.wind.state.dir) * sp * dt;
+      if (c.x > WORLD_W + 80) c.x = -80;
+      if (c.x < -80) c.x = WORLD_W + 80;
+      if (c.y > WORLD_H + 60) c.y = -60;
+      if (c.y < -60) c.y = WORLD_H + 60;
     }
   }
 
