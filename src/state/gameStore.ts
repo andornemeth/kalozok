@@ -49,7 +49,7 @@ export interface QuestProgress {
   completedQuests: string[];
 }
 
-export type SceneKey = 'title' | 'world' | 'port' | 'naval' | 'duel' | 'land' | 'treasure';
+export type SceneKey = 'title' | 'world' | 'port' | 'naval' | 'duel' | 'land' | 'treasure' | 'encounter';
 
 export interface GameState {
   started: boolean;

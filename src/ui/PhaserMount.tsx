@@ -12,13 +12,14 @@ export function PhaserMount(): JSX.Element {
     if (!ref.current || gameRef.current) return;
     gameRef.current = createGame(ref.current);
     const onScene = ({ key }: { key: string }) => {
-      const mapping: Record<string, 'world' | 'port' | 'naval' | 'duel' | 'land' | 'treasure' | 'title'> = {
+      const mapping: Record<string, 'world' | 'port' | 'naval' | 'duel' | 'land' | 'treasure' | 'title' | 'encounter'> = {
         world: 'world',
         port: 'port',
         naval: 'naval',
         duel: 'duel',
         land: 'land',
         treasure: 'treasure',
+        encounter: 'encounter',
       };
       const s = mapping[key];
       if (s) useGame.getState().setScene(s);

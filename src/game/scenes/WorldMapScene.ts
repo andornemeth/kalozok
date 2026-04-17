@@ -257,7 +257,7 @@ export class WorldMapScene extends Phaser.Scene {
     const y = saved?.y ?? start.y + 42;
     this.player = new ShipGraphic(this, x, y, {
       kind: 'ship-player',
-      scale: 0.3,
+      scale: 0.22,
     });
     this.player.setDepth(5);
     this.heading = saved?.heading ?? 0;
@@ -283,7 +283,7 @@ export class WorldMapScene extends Phaser.Scene {
         y = 60 + rng() * (WORLD_H - 120);
         if (!this.insideLand(x, y)) break;
       }
-      const ship = new ShipGraphic(this, x, y, { kind: shipKind, scale: 0.24 });
+      const ship = new ShipGraphic(this, x, y, { kind: shipKind, scale: 0.18 });
       ship.setDepth(4);
       this.enemies.push({ ship, heading: rng() * Math.PI * 2, speed: 0.22 + rng() * 0.2, kind, nation });
     }
@@ -466,18 +466,29 @@ export class WorldMapScene extends Phaser.Scene {
         const speed = baseSpeed * this.wind.speedFactor(this.heading) * (0.4 + 0.6 * sailFactor);
         const nextX = this.player.x + Math.cos(this.heading) * speed * dt;
         const nextY = this.player.y + Math.sin(this.heading) * speed * dt;
-        if (!this.insideLand(nextX, nextY)) {
-          this.player.setPosition(
-            Phaser.Math.Clamp(nextX, 6, WORLD_W - 6),
-            Phaser.Math.Clamp(nextY, 6, WORLD_H - 6),
-          );
-          this.wakeAccum += dt;
-          if (this.wakeAccum > 140) {
-            this.wakeAccum = 0;
-            this.spawnWake(this.player.x - Math.cos(this.heading) * 14, this.player.y - Math.sin(this.heading) * 14);
-          }
-        } else {
-          this.target = null;
+        // Sziget-csúszás: X és Y koordinátákat külön ellenőrizzük, így a part menti
+        // csúszás lehetséges ahelyett hogy teljesen megállna
+        let resolvedX = this.player.x;
+        let resolvedY = this.player.y;
+        const xBlocked = this.insideLand(nextX, this.player.y);
+        const yBlocked = this.insideLand(this.player.x, nextY);
+        if (!xBlocked) resolvedX = nextX;
+        if (!yBlocked) resolvedY = nextY;
+        if (xBlocked && yBlocked) {
+          // Mindkét irányba akadály — kissé löködjük tengelyirányban az akadály felől
+          const pushX = this.player.x - nextX;
+          const pushY = this.player.y - nextY;
+          resolvedX = this.player.x + Math.sign(pushX) * 0.3;
+          resolvedY = this.player.y + Math.sign(pushY) * 0.3;
+        }
+        this.player.setPosition(
+          Phaser.Math.Clamp(resolvedX, 6, WORLD_W - 6),
+          Phaser.Math.Clamp(resolvedY, 6, WORLD_H - 6),
+        );
+        this.wakeAccum += dt;
+        if (this.wakeAccum > 140) {
+          this.wakeAccum = 0;
+          this.spawnWake(this.player.x - Math.cos(this.heading) * 14, this.player.y - Math.sin(this.heading) * 14);
         }
       }
     }
@@ -547,8 +558,7 @@ export class WorldMapScene extends Phaser.Scene {
       y: Phaser.Math.Clamp(backY, 20, WORLD_H - 20),
       heading: this.heading,
     });
-    bus.emit('toast', { message: `${e.kind === 'merchant' ? 'Kereskedő' : e.kind === 'navy' ? 'Hadihajó' : 'Kalózhajó'} látótávolságban!`, kind: e.kind === 'merchant' ? 'info' : 'bad' });
-    this.scene.start('Naval', { enemyKind: e.kind, enemyNation: e.nation });
+    this.scene.start('Encounter', { enemyKind: e.kind, enemyNation: e.nation });
   }
 
   private updatePortProximity(): void {

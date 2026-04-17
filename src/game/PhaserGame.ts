@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
 import { WorldMapScene } from './scenes/WorldMapScene';
+import { EncounterScene } from './scenes/EncounterScene';
 import { NavalBattleScene } from './scenes/NavalBattleScene';
 import { DuelScene } from './scenes/DuelScene';
 import { LandBattleScene } from './scenes/LandBattleScene';
@@ -26,6 +27,6 @@ export function createGame(parent: HTMLElement): Phaser.Game {
       arcade: { gravity: { x: 0, y: 0 }, debug: false },
     },
     input: { activePointers: 3 },
-    scene: [BootScene, PreloadScene, WorldMapScene, NavalBattleScene, DuelScene, LandBattleScene, TreasureHuntScene],
+    scene: [BootScene, PreloadScene, WorldMapScene, EncounterScene, NavalBattleScene, DuelScene, LandBattleScene, TreasureHuntScene],
   });
 }
