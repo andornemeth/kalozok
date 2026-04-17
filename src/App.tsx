@@ -10,7 +10,10 @@ import { SettingsMenu } from '@/ui/SettingsMenu';
 import { SaveLoadMenu } from '@/ui/SaveLoadMenu';
 import { NewCareerModal } from '@/ui/NewCareerModal';
 import { AchievementToast } from '@/ui/AchievementToast';
+import { Objectives } from '@/ui/Objectives';
+import { Toasts } from '@/ui/Toasts';
 import { bus } from '@/game/EventBus';
+import { Audio } from '@/audio/AudioManager';
 import i18n from '@/i18n';
 
 type Modal = 'settings' | 'save' | 'newcareer' | null;
@@ -45,7 +48,18 @@ export default function App(): JSX.Element {
       if (kind === 'menu') setModal('save');
     };
     bus.on('ui:request', onReq);
-    return () => bus.off('ui:request', onReq);
+    const unlock = () => {
+      Audio.init();
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    return () => {
+      bus.off('ui:request', onReq);
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
   }, []);
 
   return (
@@ -54,8 +68,10 @@ export default function App(): JSX.Element {
         <>
           <PhaserMount />
           {scene !== 'title' && <HUD onMenu={() => setModal('save')} onSettings={() => setModal('settings')} />}
+          {scene === 'world' && <Objectives />}
           {scene === 'port' && <PortMenu />}
           <AchievementToast />
+          <Toasts />
         </>
       ) : (
         <TitleScreen

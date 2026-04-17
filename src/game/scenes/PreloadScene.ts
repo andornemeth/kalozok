@@ -79,6 +79,15 @@ export class PreloadScene extends Phaser.Scene {
     this.makePalm('palm');
     this.makeCloudShadow('cloud-shadow');
 
+    this.makeFortWall('fort-wall');
+    this.makeFortWall('fort-wall-damaged', true);
+    this.makeFortCannon('fort-cannon');
+    this.makeFortKeep('fort-keep');
+    this.makePowderBarrel('powder-barrel');
+    this.makeGuard('fort-guard');
+    this.makeAimDot('aim-dot');
+    this.makeMuzzleFlash('muzzle-flash');
+
     this.scene.start('World');
   }
 
@@ -346,6 +355,181 @@ export class PreloadScene extends Phaser.Scene {
     g.fillCircle(18, 34, 18);
     g.fillCircle(46, 40, 20);
     g.generateTexture(key, 80, 60);
+    g.destroy();
+  }
+
+  private makeFortWall(key: string, damaged = false): void {
+    const w = 56;
+    const h = 70;
+    const g = this.add.graphics();
+    // Alapzat (sötét)
+    g.fillStyle(0x4a4238, 1);
+    g.fillRect(0, 10, w, h - 10);
+    // Kő blokkok
+    g.fillStyle(0x7a7366, 1);
+    g.fillRect(2, 12, w - 4, h - 14);
+    // Kő-fugák (világosabb vonalak)
+    g.fillStyle(0x9a9388, 1);
+    for (let row = 0; row < 6; row++) {
+      const y = 14 + row * 10;
+      const offset = row % 2 === 0 ? 0 : 6;
+      for (let x = offset; x < w - 4; x += 14) {
+        g.fillRect(3 + x, y, 10, 1);
+      }
+      g.fillRect(3, y + 4, w - 6, 1);
+    }
+    // Pártázat (crenellations)
+    g.fillStyle(0x7a7366, 1);
+    for (let i = 0; i < 5; i++) {
+      g.fillRect(i * 12 + 2, 0, 8, 14);
+    }
+    g.fillStyle(0x4a4238, 1);
+    for (let i = 0; i < 5; i++) {
+      g.fillRect(i * 12 + 2, 10, 8, 2);
+    }
+    // Árnyék
+    g.fillStyle(0x2a2520, 0.7);
+    g.fillRect(0, h - 4, w, 4);
+    // Sérülés — ha damaged, rajzolj fekete repedéseket és hiányzó darabokat
+    if (damaged) {
+      g.fillStyle(0x1a1410, 1);
+      g.fillCircle(18, 28, 6);
+      g.fillCircle(36, 44, 8);
+      g.fillRect(8, 2, 6, 12);
+      g.fillRect(34, 0, 6, 10);
+      // Repedések
+      g.lineStyle(1, 0x1a1410, 1);
+      g.lineBetween(12, 18, 20, 40);
+      g.lineBetween(30, 24, 42, 50);
+    }
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  private makeFortCannon(key: string): void {
+    const w = 24;
+    const h = 16;
+    const g = this.add.graphics();
+    // Kerék
+    g.fillStyle(0x5a3a1a, 1);
+    g.fillCircle(6, 12, 4);
+    g.fillStyle(0x2a1a0a, 1);
+    g.fillCircle(6, 12, 2);
+    // Test (fa szekér)
+    g.fillStyle(0x6b4a2b, 1);
+    g.fillRect(2, 8, 16, 4);
+    // Cső (fém)
+    g.fillStyle(0x2a2a2a, 1);
+    g.fillRoundedRect(4, 4, 18, 5, 1);
+    g.fillStyle(0x4a4a4a, 1);
+    g.fillRect(4, 5, 16, 1);
+    g.fillStyle(0x1a1a1a, 1);
+    g.fillRect(20, 5, 2, 3);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  private makeFortKeep(key: string): void {
+    const w = 50;
+    const h = 86;
+    const g = this.add.graphics();
+    // Árnyék
+    g.fillStyle(0x3a3028, 1);
+    g.fillRect(0, 20, w, h - 20);
+    // Fal
+    g.fillStyle(0x8a7a66, 1);
+    g.fillRect(3, 22, w - 6, h - 24);
+    // Kő-fugák
+    g.fillStyle(0x6a5a48, 1);
+    for (let row = 0; row < 7; row++) {
+      const y = 26 + row * 8;
+      const off = row % 2 === 0 ? 0 : 5;
+      for (let x = off; x < w - 6; x += 10) {
+        g.fillRect(4 + x, y, 8, 1);
+      }
+    }
+    // Tető pártázat
+    g.fillStyle(0x6a5a48, 1);
+    for (let i = 0; i < 4; i++) {
+      g.fillRect(3 + i * 11, 12, 8, 14);
+    }
+    g.fillStyle(0x3a3028, 1);
+    for (let i = 0; i < 4; i++) {
+      g.fillRect(3 + i * 11, 22, 8, 2);
+    }
+    // Ablakok (keresztrács)
+    g.fillStyle(0x1a1a1a, 1);
+    g.fillRect(12, 36, 4, 8);
+    g.fillRect(34, 36, 4, 8);
+    // Főkapu
+    g.fillStyle(0x1a1a1a, 1);
+    g.fillRoundedRect(20, 62, 10, 20, 2);
+    g.fillStyle(0x4a3a28, 1);
+    g.fillRect(24, 64, 2, 16);
+    // Zászló
+    g.fillStyle(0x2a2a2a, 1);
+    g.fillRect(24, 0, 2, 14);
+    g.fillStyle(0xd04040, 1);
+    g.fillTriangle(26, 2, 40, 5, 26, 10);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  private makePowderBarrel(key: string): void {
+    const w = 16;
+    const h = 18;
+    const g = this.add.graphics();
+    g.fillStyle(0x3a2a1a, 1);
+    g.fillRoundedRect(1, 2, w - 2, h - 2, 3);
+    g.fillStyle(0x6b4a2b, 1);
+    g.fillRect(3, 4, w - 6, h - 6);
+    g.fillStyle(0x3a2a1a, 1);
+    g.fillRect(3, 8, w - 6, 1);
+    g.fillRect(3, 12, w - 6, 1);
+    // Kanóc
+    g.fillStyle(0x1a1a1a, 1);
+    g.fillRect(w / 2, 0, 1, 3);
+    g.fillStyle(0xff6a3d, 1);
+    g.fillCircle(w / 2, 1, 1);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  private makeGuard(key: string): void {
+    const w = 10;
+    const h = 16;
+    const g = this.add.graphics();
+    // Test
+    g.fillStyle(0x4f6ba6, 1);
+    g.fillRect(2, 6, 6, 7);
+    // Fej
+    g.fillStyle(0xe0b24f, 1);
+    g.fillCircle(5, 4, 3);
+    // Tollas sisak
+    g.fillStyle(0x1a1a1a, 1);
+    g.fillRect(2, 1, 6, 2);
+    // Musket
+    g.fillStyle(0x2a1a0a, 1);
+    g.fillRect(7, 4, 3, 1);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  private makeAimDot(key: string): void {
+    const g = this.add.graphics();
+    g.fillStyle(0xe0b24f, 1);
+    g.fillCircle(2, 2, 2);
+    g.generateTexture(key, 4, 4);
+    g.destroy();
+  }
+
+  private makeMuzzleFlash(key: string): void {
+    const g = this.add.graphics();
+    g.fillStyle(0xffcc66, 1);
+    g.fillCircle(6, 6, 6);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(6, 6, 3);
+    g.generateTexture(key, 12, 12);
     g.destroy();
   }
 }

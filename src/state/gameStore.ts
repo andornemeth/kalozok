@@ -40,6 +40,15 @@ export interface Flags {
   tutorialCombat: boolean;
 }
 
+export interface QuestProgress {
+  visitedPorts: string[];
+  shipsDefeated: number;
+  goldAccumulated: number;
+  sieged: boolean;
+  treasureFound: boolean;
+  completedQuests: string[];
+}
+
 export type SceneKey = 'title' | 'world' | 'port' | 'naval' | 'duel' | 'land' | 'treasure';
 
 export interface GameState {
@@ -56,6 +65,7 @@ export interface GameState {
   seed: number;
   flags: Flags;
   achievements: string[];
+  quests: QuestProgress;
   setScene: (s: SceneKey) => void;
   newCareer: (input: { name: string; nation: NationId; era: number; difficulty: DifficultyId; seed: number }) => void;
   dockAt: (portId: string) => void;
@@ -77,6 +87,11 @@ export interface GameState {
   replaceShip: (cls: ShipClass) => void;
   setFlag: (k: keyof Flags, v: boolean) => void;
   advanceDays: (d: number) => void;
+  recordPortVisit: (portId: string) => void;
+  recordShipDefeated: () => void;
+  recordSiege: () => void;
+  recordTreasureFound: () => void;
+  completeQuest: (id: string) => void;
   loadState: (s: GameState) => void;
 }
 
@@ -90,6 +105,15 @@ const initialFlags: Flags = {
   tutorialMove: false,
   tutorialPort: false,
   tutorialCombat: false,
+};
+
+const initialQuests: QuestProgress = {
+  visitedPorts: [],
+  shipsDefeated: 0,
+  goldAccumulated: 0,
+  sieged: false,
+  treasureFound: false,
+  completedQuests: [],
 };
 
 const initialCareer: CareerState = {
@@ -127,6 +151,7 @@ export const useGame = create<GameState>()(
       seed: 1,
       flags: initialFlags,
       achievements: [],
+      quests: initialQuests,
 
       setScene: (s) => set({ scene: s }),
 
@@ -152,12 +177,17 @@ export const useGame = create<GameState>()(
           currentPortId: null,
           flags: initialFlags,
           achievements: [],
+          quests: initialQuests,
         }),
 
       dockAt: (portId) => set({ currentPortId: portId, scene: 'port' }),
       leavePort: () => set({ currentPortId: null, scene: 'world' }),
 
-      addGold: (n) => set((s) => ({ career: { ...s.career, gold: s.career.gold + n } })),
+      addGold: (n) =>
+        set((s) => ({
+          career: { ...s.career, gold: s.career.gold + n },
+          quests: { ...s.quests, goldAccumulated: s.quests.goldAccumulated + Math.max(0, n) },
+        })),
       spendGold: (n) => {
         const { career } = get();
         if (career.gold < n) return false;
@@ -234,6 +264,25 @@ export const useGame = create<GameState>()(
           food: Math.max(0, s.food - Math.ceil(d * (s.ship.crew / 10))),
           morale: Math.max(0, s.morale - (s.food <= 0 ? 4 * d : 0)),
         })),
+
+      recordPortVisit: (portId) =>
+        set((s) => ({
+          quests: s.quests.visitedPorts.includes(portId)
+            ? s.quests
+            : { ...s.quests, visitedPorts: [...s.quests.visitedPorts, portId] },
+        })),
+
+      recordShipDefeated: () =>
+        set((s) => ({ quests: { ...s.quests, shipsDefeated: s.quests.shipsDefeated + 1 } })),
+
+      recordSiege: () => set((s) => ({ quests: { ...s.quests, sieged: true } })),
+      recordTreasureFound: () => set((s) => ({ quests: { ...s.quests, treasureFound: true } })),
+      completeQuest: (id) =>
+        set((s) =>
+          s.quests.completedQuests.includes(id)
+            ? s
+            : { quests: { ...s.quests, completedQuests: [...s.quests.completedQuests, id] } },
+        ),
 
       loadState: (s) => set({ ...s }),
     }),
