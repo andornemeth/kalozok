@@ -12,7 +12,7 @@ export interface Quest {
 
 /** Az aktív célok listáját számolja az adott állapot alapján. */
 export function computeQuests(state: GameState): Quest[] {
-  const q = state.quests;
+  const q = state.quests ?? { visitedPorts: [], shipsDefeated: 0, goldAccumulated: 0, sieged: false, treasureFound: false, completedQuests: [] };
   return [
     {
       id: 'visit-3-ports',

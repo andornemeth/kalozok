@@ -185,13 +185,16 @@ export const useGame = create<GameState>()(
         }),
 
       dockAt: (portId) =>
-        set((s) => ({
-          currentPortId: portId,
-          scene: 'port',
-          quests: s.quests.visitedPorts.includes(portId)
-            ? s.quests
-            : { ...s.quests, visitedPorts: [...s.quests.visitedPorts, portId] },
-        })),
+        set((s) => {
+          const q = s.quests ?? initialQuests;
+          return {
+            currentPortId: portId,
+            scene: 'port' as const,
+            quests: q.visitedPorts.includes(portId)
+              ? q
+              : { ...q, visitedPorts: [...q.visitedPorts, portId] },
+          };
+        }),
       leavePort: () => set({ currentPortId: null, scene: 'world' }),
 
       addGold: (n) =>
@@ -302,7 +305,15 @@ export const useGame = create<GameState>()(
     {
       name: 'kalozok:game',
       storage: createJSONStorage(() => localStorage),
-      version: 1,
+      version: 2,
+      migrate: (persisted) => {
+        const s = (persisted ?? {}) as Record<string, unknown>;
+        if (!s.quests) s.quests = initialQuests;
+        if (s.worldPos === undefined) s.worldPos = null;
+        if (!s.achievements) s.achievements = [];
+        if (!s.flags) s.flags = initialFlags;
+        return s as unknown as GameState;
+      },
     },
   ),
 );
