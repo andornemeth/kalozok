@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { bus } from '@/game/EventBus';
 import { useGame } from '@/state/gameStore';
 import { vibrate } from '@/utils/haptics';
+import { checkQuestCompletion } from '@/game/systems/QuestSystem';
 
 export class TreasureHuntScene extends Phaser.Scene {
   private target = new Phaser.Math.Vector2();
@@ -15,6 +16,7 @@ export class TreasureHuntScene extends Phaser.Scene {
 
   create(): void {
     bus.emit('scene:changed', { key: 'treasure' });
+    this.cameras.main.fadeIn(350, 4, 20, 26);
     this.cameras.main.setBackgroundColor('#b99137');
     this.target.set(Phaser.Math.Between(60, this.scale.width - 60), Phaser.Math.Between(100, this.scale.height - 120));
     this.add
@@ -59,8 +61,14 @@ export class TreasureHuntScene extends Phaser.Scene {
       g.addGold(gold);
       g.clearTreasureFragments();
       g.unlockAchievement('treasure-hunter');
+      g.recordTreasureFound();
+      checkQuestCompletion(useGame.getState(), (_id, title, reward) =>
+        bus.emit('toast', { message: `Cél teljesült: ${title} (+${reward}g)`, kind: 'good' }),
+      );
+      bus.emit('toast', { message: `Kincs! +${gold} arany`, kind: 'good' });
       bus.emit('treasure:end', { gold });
     } else {
+      bus.emit('toast', { message: 'A kincset másutt rejtették…', kind: 'bad' });
       bus.emit('treasure:end', { gold: 0 });
     }
     this.time.delayedCall(400, () => this.scene.start('World'));

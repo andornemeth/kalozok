@@ -55,6 +55,9 @@ export class WorldMapScene extends Phaser.Scene {
     super('World');
   }
 
+  private tintOverlay?: Phaser.GameObjects.Rectangle;
+  private hintText?: Phaser.GameObjects.Text;
+
   create(): void {
     this.drawWater();
     this.drawLandMasses();
@@ -66,8 +69,54 @@ export class WorldMapScene extends Phaser.Scene {
     this.setupCamera();
     this.setupInput();
     this.setupMinimap();
+    this.setupDayNight();
+    this.showFirstTimeHint();
+    this.cameras.main.fadeIn(400, 4, 20, 26);
     bus.emit('scene:changed', { key: 'world' });
     bus.emit('world:nearPort', null);
+  }
+
+  private setupDayNight(): void {
+    this.tintOverlay = this.add
+      .rectangle(0, 0, WORLD_W, WORLD_H, 0x0a1a3a, 0)
+      .setOrigin(0, 0)
+      .setDepth(40);
+  }
+
+  private updateDayNight(): void {
+    if (!this.tintOverlay) return;
+    const days = useGame.getState().career.daysAtSea;
+    const phase = (days % 4) / 4; // 4-napos ciklus
+    // 0 = dél, 0.25 = alkony, 0.5 = éj, 0.75 = hajnal
+    const nightness = Math.max(0, Math.sin((phase - 0.25) * Math.PI * 2));
+    this.tintOverlay.fillAlpha = nightness * 0.45;
+  }
+
+  private showFirstTimeHint(): void {
+    if (useGame.getState().flags.tutorialMove) return;
+    this.hintText = this.add
+      .text(this.scale.width / 2, this.scale.height / 2 - 40, 'Érints a tengerbe\nhogy odavitorlázz', {
+        fontFamily: '"Press Start 2P"',
+        fontSize: '12px',
+        color: '#fbf5e3',
+        align: 'center',
+        stroke: '#04141a',
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(50);
+    this.tweens.add({
+      targets: this.hintText,
+      alpha: { from: 1, to: 0.5 },
+      yoyo: true,
+      repeat: -1,
+      duration: 900,
+    });
+    this.time.delayedCall(6000, () => {
+      this.hintText?.destroy();
+      this.hintText = undefined;
+    });
   }
 
   private drawWater(): void {
@@ -202,14 +251,20 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private spawnPlayer(): void {
+    const saved = useGame.getState().worldPos;
     const start = PORTS[0]!;
-    this.player = new ShipGraphic(this, start.x + 42, start.y + 42, {
+    const x = saved?.x ?? start.x + 42;
+    const y = saved?.y ?? start.y + 42;
+    this.player = new ShipGraphic(this, x, y, {
       kind: 'ship-player',
       scale: 0.3,
     });
     this.player.setDepth(5);
-    this.heading = 0;
+    this.heading = saved?.heading ?? 0;
   }
+
+  private encounterGrace = 2500;
+  private saveTimer = 0;
 
   private spawnEnemies(): void {
     const rng = () => Math.random();
@@ -342,8 +397,14 @@ export class WorldMapScene extends Phaser.Scene {
     this.updateWindArrows();
     this.updatePlayer(dt);
     this.updateEnemies(dt);
-    this.updateEncounter();
+    this.updateEncounter(dt);
     this.updatePortProximity();
+    if (this.saveTimer > 500) {
+      this.saveTimer = 0;
+      useGame.getState().setWorldPos({ x: this.player.x, y: this.player.y, heading: this.heading });
+    } else {
+      this.saveTimer += dt;
+    }
     this.dayAccum += dt;
     if (this.dayAccum > 2000) {
       this.dayAccum = 0;
@@ -356,6 +417,11 @@ export class WorldMapScene extends Phaser.Scene {
     }
     this.updateWakes(dt);
     this.updateCloudShadows(dt);
+    this.updateDayNight();
+    if (this.hintText && useGame.getState().flags.tutorialMove) {
+      this.hintText.destroy();
+      this.hintText = undefined;
+    }
     if (this.targetMarker && this.targetMarker.visible) {
       this.targetMarker.setRotation(this.targetMarker.rotation + 0.002 * dt);
     }
@@ -452,10 +518,15 @@ export class WorldMapScene extends Phaser.Scene {
     }
   }
 
-  private updateEncounter(): void {
+  private updateEncounter(dt: number): void {
+    if (this.encounterGrace > 0) {
+      this.encounterGrace -= dt;
+      return;
+    }
     for (const e of this.enemies) {
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.ship.x, e.ship.y);
-      if (d < 26) {
+      const trigger = e.kind === 'merchant' ? 14 : 22;
+      if (d < trigger) {
         this.triggerNavalEncounter(e);
         break;
       }
@@ -466,6 +537,17 @@ export class WorldMapScene extends Phaser.Scene {
     const idx = this.enemies.indexOf(e);
     if (idx >= 0) this.enemies.splice(idx, 1);
     e.ship.destroy();
+    const dx = this.player.x - e.ship.x;
+    const dy = this.player.y - e.ship.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const backX = this.player.x + (dx / len) * 18;
+    const backY = this.player.y + (dy / len) * 18;
+    useGame.getState().setWorldPos({
+      x: Phaser.Math.Clamp(backX, 20, WORLD_W - 20),
+      y: Phaser.Math.Clamp(backY, 20, WORLD_H - 20),
+      heading: this.heading,
+    });
+    bus.emit('toast', { message: `${e.kind === 'merchant' ? 'Kereskedő' : e.kind === 'navy' ? 'Hadihajó' : 'Kalózhajó'} látótávolságban!`, kind: e.kind === 'merchant' ? 'info' : 'bad' });
     this.scene.start('Naval', { enemyKind: e.kind, enemyNation: e.nation });
   }
 

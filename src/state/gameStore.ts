@@ -66,6 +66,7 @@ export interface GameState {
   flags: Flags;
   achievements: string[];
   quests: QuestProgress;
+  worldPos: { x: number; y: number; heading: number } | null;
   setScene: (s: SceneKey) => void;
   newCareer: (input: { name: string; nation: NationId; era: number; difficulty: DifficultyId; seed: number }) => void;
   dockAt: (portId: string) => void;
@@ -92,6 +93,7 @@ export interface GameState {
   recordSiege: () => void;
   recordTreasureFound: () => void;
   completeQuest: (id: string) => void;
+  setWorldPos: (p: { x: number; y: number; heading: number } | null) => void;
   loadState: (s: GameState) => void;
 }
 
@@ -152,6 +154,7 @@ export const useGame = create<GameState>()(
       flags: initialFlags,
       achievements: [],
       quests: initialQuests,
+      worldPos: null,
 
       setScene: (s) => set({ scene: s }),
 
@@ -178,9 +181,17 @@ export const useGame = create<GameState>()(
           flags: initialFlags,
           achievements: [],
           quests: initialQuests,
+          worldPos: null,
         }),
 
-      dockAt: (portId) => set({ currentPortId: portId, scene: 'port' }),
+      dockAt: (portId) =>
+        set((s) => ({
+          currentPortId: portId,
+          scene: 'port',
+          quests: s.quests.visitedPorts.includes(portId)
+            ? s.quests
+            : { ...s.quests, visitedPorts: [...s.quests.visitedPorts, portId] },
+        })),
       leavePort: () => set({ currentPortId: null, scene: 'world' }),
 
       addGold: (n) =>
@@ -283,6 +294,8 @@ export const useGame = create<GameState>()(
             ? s
             : { quests: { ...s.quests, completedQuests: [...s.quests.completedQuests, id] } },
         ),
+
+      setWorldPos: (p) => set({ worldPos: p }),
 
       loadState: (s) => set({ ...s }),
     }),

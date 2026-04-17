@@ -8,6 +8,8 @@ import { TavernDialog } from './dialogs/TavernDialog';
 import { ShipyardDialog } from './dialogs/ShipyardDialog';
 import { GovernorDialog } from './dialogs/GovernorDialog';
 import { bus } from '@/game/EventBus';
+import { useEffect } from 'react';
+import { checkQuestCompletion } from '@/game/systems/QuestSystem';
 
 type Sub = 'tavern' | 'merchant' | 'shipyard' | 'governor' | null;
 
@@ -22,6 +24,12 @@ export function PortMenu(): JSX.Element | null {
   if (!portId) return null;
   const port = findPort(portId);
   if (!port) return null;
+
+  useEffect(() => {
+    checkQuestCompletion(useGame.getState(), (_id, title, reward) =>
+      bus.emit('toast', { message: `Cél teljesült: ${title} (+${reward}g)`, kind: 'good' }),
+    );
+  }, [portId]);
 
   const hostile = port.nation !== 'pirate' && port.nation !== playerNation;
   const canHunt = fragments >= 4;

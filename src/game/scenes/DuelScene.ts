@@ -29,6 +29,7 @@ export class DuelScene extends Phaser.Scene {
 
   create(): void {
     bus.emit('scene:changed', { key: 'duel' });
+    this.cameras.main.fadeIn(350, 4, 20, 26);
     this.cameras.main.setBackgroundColor('#082427');
     const cx = this.scale.width / 2;
     this.add

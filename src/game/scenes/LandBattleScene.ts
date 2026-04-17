@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { bus } from '@/game/EventBus';
 import { useGame } from '@/state/gameStore';
 import { vibrate } from '@/utils/haptics';
+import { checkQuestCompletion } from '@/game/systems/QuestSystem';
 
 type UnitType = 'buccaneer' | 'soldier' | 'cavalry';
 type Side = 'player' | 'enemy';
@@ -72,6 +73,7 @@ export class LandBattleScene extends Phaser.Scene {
 
   create(): void {
     bus.emit('scene:changed', { key: 'land' });
+    this.cameras.main.fadeIn(350, 4, 20, 26);
     this.ended = false;
     this.units = [];
     this.gates = [];
@@ -425,6 +427,10 @@ export class LandBattleScene extends Phaser.Scene {
       g.addGold(loot);
       g.unlockAchievement('city-conqueror');
       g.adjustMorale(+15);
+      g.recordSiege();
+      checkQuestCompletion(useGame.getState(), (_id, title, reward) =>
+        bus.emit('toast', { message: `Cél teljesült: ${title} (+${reward}g)`, kind: 'good' }),
+      );
       this.flashEndBanner('DIADAL! +' + loot + ' arany', 0x2d5a2d);
     } else {
       g.adjustMorale(-12);
