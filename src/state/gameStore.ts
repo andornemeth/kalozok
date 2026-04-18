@@ -62,6 +62,7 @@ export interface Flags {
   tutorialMove: boolean;
   tutorialPort: boolean;
   tutorialCombat: boolean;
+  tutorialDuel: boolean;
 }
 
 export interface QuestProgress {
@@ -135,6 +136,7 @@ const initialFlags: Flags = {
   tutorialMove: false,
   tutorialPort: false,
   tutorialCombat: false,
+  tutorialDuel: false,
 };
 
 const initialQuests: QuestProgress = {

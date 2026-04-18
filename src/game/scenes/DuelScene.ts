@@ -4,37 +4,76 @@ import { useGame } from '@/state/gameStore';
 import { vibrate } from '@/utils/haptics';
 import { Audio } from '@/audio/AudioManager';
 import { Particles } from '@/game/systems/Particles';
+import { Joystick } from '@/game/ui/Joystick';
 
 type Stance = 'high' | 'middle' | 'low';
-type Move = 'slash' | 'thrust' | 'parry' | 'dodge';
+type DuelistState = 'idle' | 'attacking' | 'parrying' | 'dodging' | 'stunned';
 
 interface Duelist {
   hp: number;
   hpMax: number;
+  posX: number;
   stance: Stance;
   facing: 1 | -1;
+  state: DuelistState;
+  actionT: number;          // aktuális akció eltelt ms
+  dodgeCooldown: number;    // hátralévő dodge cooldown (ms)
+  stunT: number;            // stun hátralévő ms
+  // AI-only
+  aiDecisionT: number;      // hátralévő idő új döntésig
+  aiPendingAttack: boolean; // épp telegrafál támadást
+  aiTelegraphT: number;     // telegráf-idő hátra
+  aiReactionTime: number;   // mennyit telegrafál (easy = hosszabb)
+  // megjelenítés
   sprite: Phaser.GameObjects.Image;
   shadow: Phaser.GameObjects.Ellipse;
-  baseX: number;
-  baseY: number;
   hpBar: Phaser.GameObjects.Graphics;
   stanceLabel: Phaser.GameObjects.Text;
-  intentLabel?: Phaser.GameObjects.Text;
-  intent?: { stance: Stance; move: Move };
+  intentLabel: Phaser.GameObjects.Text;
 }
+
+// Tuning konstansok
+const MOVE_SPEED = 0.12;              // px/ms
+const ATTACK_DURATION = 260;
+const ATTACK_HIT_AT = 130;
+const ATTACK_RECOVERY = 160;          // ATTACK_DURATION után
+const DODGE_DURATION = 320;
+const DODGE_COOLDOWN = 800;
+const DODGE_BACKSTEP = 50;
+const PARRY_MOVE_MULT = 0.5;
+const PUSH_ON_HIT = 26;
+const PUSH_ON_PARRY = 36;
+const STUN_AFTER_HIT = 220;
 
 export class DuelScene extends Phaser.Scene {
   private player!: Duelist;
   private enemy!: Duelist;
-  private turnLabel!: Phaser.GameObjects.Text;
-  private busy = false;
-  private ended = false;
-  private stanceBtns: Phaser.GameObjects.Container[] = [];
-  private moveBtns: Phaser.GameObjects.Container[] = [];
+  private joystick!: Joystick;
+  private attackBtn!: Phaser.GameObjects.Container;
+  private parryBtn!: Phaser.GameObjects.Container;
+  private dodgeBtn!: Phaser.GameObjects.Container;
+  private parryHeld = false;
   private bgFar!: Phaser.GameObjects.Graphics;
+  private deckLine!: Phaser.GameObjects.Graphics;
+  private edgeMarkers!: Phaser.GameObjects.Graphics;
+  private bannerTxt!: Phaser.GameObjects.Text;
+  private arenaLeft = 100;
+  private arenaRight = 1000;
+  private ended = false;
+  private defenderMode = false;
 
   constructor() {
     super('Duel');
+  }
+
+  init(data: { enemyCrew?: number; enemyKind?: string; defender?: boolean }): void {
+    this.ended = false;
+    this.parryHeld = false;
+    this.defenderMode = !!data.defender;
+    // AI nehézség: kisebb reakció-idő = nehezebb ellenfél
+    // (a nehézséget egyelőre fix 500 ms-re vesszük; később differenciálható)
+    void data.enemyCrew;
+    void data.enemyKind;
   }
 
   create(): void {
@@ -42,45 +81,44 @@ export class DuelScene extends Phaser.Scene {
     this.input.removeAllListeners();
     this.cameras.main.fadeIn(380, 4, 20, 26);
     this.cameras.main.setBackgroundColor('#0e2630');
-    this.busy = false;
-    this.ended = false;
+
+    this.arenaLeft = 100;
+    this.arenaRight = this.scale.width - 100;
 
     this.drawBackground();
+    this.drawDeck();
 
-    const cx = this.scale.width / 2;
     const cy = this.scale.height / 2 + 40;
-    this.player = this.makeDuelist(cx - 110, cy, 'duelist-player', 80, +1);
-    this.enemy = this.makeDuelist(cx + 110, cy, 'duelist-enemy', 60 + Math.floor(Math.random() * 40), -1);
+    const playerX = this.scale.width / 2 - 140;
+    const enemyX = this.scale.width / 2 + 140;
+    this.player = this.makeDuelist(playerX, cy, 'duelist-player', 80, +1, 0);
+    this.enemy = this.makeDuelist(enemyX, cy, 'duelist-enemy', 60 + Math.floor(Math.random() * 40), -1, 500);
 
-    this.add
-      .text(cx, 18, 'PÁRBAJ', {
-        fontFamily: '"Press Start 2P"', fontSize: '14px', color: '#e0b24f',
-        stroke: '#04141a', strokeThickness: 4,
-      })
-      .setOrigin(0.5, 0);
-    this.turnLabel = this.add
-      .text(cx, 50, 'A te köröd', {
-        fontFamily: '"Press Start 2P"', fontSize: '10px', color: '#fbf5e3',
-        stroke: '#04141a', strokeThickness: 3,
-      })
-      .setOrigin(0.5);
-
-    this.createStanceButtons();
-    this.createMoveButtons();
+    this.createBanner();
+    this.createControls();
+    this.setupInput();
     this.scale.on('resize', () => this.layout());
     this.layout();
-    this.refreshIntent();
-    this.updateStanceHighlight();
+
+    // UI pause (tutorial) support
+    const pauseHandler = ({ paused }: { paused: boolean }) => {
+      if (paused) this.scene.pause();
+      else this.scene.resume();
+    };
+    bus.on('ui:pause', pauseHandler);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => bus.off('ui:pause', pauseHandler));
   }
+
+  // --- Setup ---------------------------------------------------------
 
   private drawBackground(): void {
     const w = this.scale.width;
     const h = this.scale.height;
-    this.bgFar = this.add.graphics();
+    this.bgFar = this.add.graphics().setDepth(0);
     // Égbolt
     this.bgFar.fillStyle(0x14213a, 1);
     this.bgFar.fillRect(0, 0, w, h);
-    // Hajó-fedélzet háttér
+    // Fedélzet
     this.bgFar.fillStyle(0x6b3e1f, 1);
     this.bgFar.fillRect(0, h * 0.55, w, h * 0.45);
     this.bgFar.fillStyle(0x4a2e1a, 1);
@@ -93,7 +131,7 @@ export class DuelScene extends Phaser.Scene {
     for (let x = 8; x < w; x += 22) {
       this.bgFar.fillRect(x, h * 0.55 - 22, 3, 18);
     }
-    // Holdfény
+    // Hold
     this.bgFar.fillStyle(0xfbf5e3, 0.18);
     this.bgFar.fillCircle(w * 0.78, h * 0.18, 26);
     // Felhők
@@ -102,20 +140,50 @@ export class DuelScene extends Phaser.Scene {
     this.bgFar.fillCircle(w * 0.28, h * 0.18, 22);
   }
 
-  private makeDuelist(x: number, y: number, tex: string, hp: number, facing: 1 | -1): Duelist {
+  private drawDeck(): void {
+    this.deckLine = this.add.graphics().setDepth(1);
+    this.edgeMarkers = this.add.graphics().setDepth(1);
+    this.refreshDeck();
+  }
+
+  private refreshDeck(): void {
+    const y = this.scale.height / 2 + 68;
+    this.deckLine.clear();
+    this.deckLine.lineStyle(1, 0xfbf5e3, 0.18);
+    this.deckLine.lineBetween(this.arenaLeft, y, this.arenaRight, y);
+
+    // Edge markers — piros szaggatott vonal mindkét szélen
+    this.edgeMarkers.clear();
+    const drawEdge = (x: number, label: string) => {
+      this.edgeMarkers.lineStyle(2, 0xc0392b, 0.55);
+      for (let yy = y - 100; yy < y + 30; yy += 8) {
+        this.edgeMarkers.lineBetween(x, yy, x, yy + 4);
+      }
+      void label;
+    };
+    drawEdge(this.arenaLeft, '← KIESÉS');
+    drawEdge(this.arenaRight, 'KIESÉS →');
+  }
+
+  private makeDuelist(x: number, y: number, tex: string, hp: number, facing: 1 | -1, aiReactionTime: number): Duelist {
     const shadow = this.add.ellipse(x, y + 28, 50, 14, 0x04141a, 0.6).setDepth(2);
     const sprite = this.add.image(x, y, tex).setOrigin(0.5, 1).setScale(2).setDepth(5);
     if (facing === -1) sprite.setFlipX(true);
     const hpBar = this.add.graphics().setDepth(8);
-    const stanceLabel = this.add
-      .text(x, y - 130, 'KÖZÉP', {
-        fontFamily: '"Press Start 2P"', fontSize: '8px', color: '#fbf5e3',
-        stroke: '#04141a', strokeThickness: 3,
-      })
-      .setOrigin(0.5).setDepth(8);
+    const stanceLabel = this.add.text(x, y - 130, 'KÖZÉP', {
+      fontFamily: '"Press Start 2P"', fontSize: '8px', color: '#fbf5e3',
+      stroke: '#04141a', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(8);
+    const intentLabel = this.add.text(x, y - 116, '', {
+      fontFamily: '"Press Start 2P"', fontSize: '9px', color: '#ffd7c7',
+      stroke: '#04141a', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(9);
     const d: Duelist = {
-      hp, hpMax: hp, stance: 'middle', facing, sprite, shadow,
-      baseX: x, baseY: y, hpBar, stanceLabel,
+      hp, hpMax: hp, posX: x, stance: 'middle', facing,
+      state: 'idle', actionT: 0, dodgeCooldown: 0, stunT: 0,
+      aiDecisionT: 500 + Math.random() * 500,
+      aiPendingAttack: false, aiTelegraphT: 0, aiReactionTime,
+      sprite, shadow, hpBar, stanceLabel, intentLabel,
     };
     this.drawHpBar(d);
     return d;
@@ -123,195 +191,319 @@ export class DuelScene extends Phaser.Scene {
 
   private drawHpBar(d: Duelist): void {
     d.hpBar.clear();
-    const w = 90;
-    const x = d.baseX - w / 2;
-    const y = d.baseY - 138;
+    const w = 120;
+    const x = d.posX - w / 2;
+    const y = d.sprite.y - 148;
     d.hpBar.fillStyle(0x04141a, 0.85);
-    d.hpBar.fillRoundedRect(x - 2, y - 2, w + 4, 8, 2);
+    d.hpBar.fillRoundedRect(x - 2, y - 2, w + 4, 10, 2);
     d.hpBar.fillStyle(d === this.player ? 0xe0b24f : 0xc0392b, 1);
-    d.hpBar.fillRect(x, y, Math.max(0, (d.hp / d.hpMax) * w), 4);
+    d.hpBar.fillRect(x, y, Math.max(0, (d.hp / d.hpMax) * w), 6);
   }
 
-  private stanceLabelText(s: Stance): string {
-    return s === 'high' ? 'MAGAS' : s === 'middle' ? 'KÖZÉP' : 'ALACS.';
+  private createBanner(): void {
+    this.bannerTxt = this.add.text(this.scale.width / 2, 18, 'PÁRBAJ', {
+      fontFamily: '"Press Start 2P"', fontSize: '14px', color: '#e0b24f',
+      stroke: '#04141a', strokeThickness: 4,
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(30);
   }
 
-  private createStanceButtons(): void {
-    const stances: Stance[] = ['high', 'middle', 'low'];
-    this.stanceBtns = stances.map((s) =>
-      this.button(0, 0, 80, 36, 0x145f65, this.stanceLabelText(s), () => {
-        this.player.stance = s;
-        this.player.stanceLabel.setText(this.stanceLabelText(s));
-        this.updateStanceHighlight();
-        Audio.click();
-      }).setData('stance', s),
-    );
+  // --- Kontrollok ----------------------------------------------------
+
+  private createControls(): void {
+    this.joystick = new Joystick(this, 120, this.scale.height - 140, 80, 28);
+
+    const mkBtn = (label: string, w: number, h: number, color: number, fontSize: string) => {
+      const c = this.add.container(0, 0).setScrollFactor(0).setDepth(30);
+      const bg = this.add.rectangle(0, 0, w, h, color, 0.92).setStrokeStyle(2, 0xfbf5e3);
+      const txt = this.add.text(0, 0, label, {
+        fontFamily: '"Press Start 2P"', fontSize, color: '#fbf5e3', align: 'center',
+      }).setOrigin(0.5);
+      c.add([bg, txt]);
+      c.setSize(w, h);
+      c.setInteractive({ useHandCursor: true });
+      return c;
+    };
+
+    this.attackBtn = mkBtn('TÁMADÁS', 140, 88, 0x7a2e0e, '14px');
+    this.attackBtn.on('pointerdown', () => {
+      const bg = this.attackBtn.list[0] as Phaser.GameObjects.Rectangle;
+      bg.setFillStyle(0x7a2e0e, 0.7);
+      this.tryAttack();
+    });
+    this.attackBtn.on('pointerup', () => {
+      const bg = this.attackBtn.list[0] as Phaser.GameObjects.Rectangle;
+      bg.setFillStyle(0x7a2e0e, 0.92);
+    });
+    this.attackBtn.on('pointerout', () => {
+      const bg = this.attackBtn.list[0] as Phaser.GameObjects.Rectangle;
+      bg.setFillStyle(0x7a2e0e, 0.92);
+    });
+
+    this.parryBtn = mkBtn('HÁRÍTÁS', 108, 52, 0x145f65, '10px');
+    const parryPress = () => {
+      if (this.ended) return;
+      this.parryHeld = true;
+      const bg = this.parryBtn.list[0] as Phaser.GameObjects.Rectangle;
+      bg.setFillStyle(0x145f65, 0.6);
+    };
+    const parryRelease = () => {
+      this.parryHeld = false;
+      const bg = this.parryBtn.list[0] as Phaser.GameObjects.Rectangle;
+      bg.setFillStyle(0x145f65, 0.92);
+    };
+    this.parryBtn.on('pointerdown', parryPress);
+    this.parryBtn.on('pointerup', parryRelease);
+    this.parryBtn.on('pointerout', parryRelease);
+    this.parryBtn.on('pointerupoutside', parryRelease);
+
+    this.dodgeBtn = mkBtn('KITÉR', 108, 52, 0x4a4238, '10px');
+    this.dodgeBtn.on('pointerup', () => this.tryDodge());
+    this.dodgeBtn.on('pointerdown', () => {
+      const bg = this.dodgeBtn.list[0] as Phaser.GameObjects.Rectangle;
+      bg.setFillStyle(0x4a4238, 0.7);
+    });
+    this.dodgeBtn.on('pointerout', () => {
+      const bg = this.dodgeBtn.list[0] as Phaser.GameObjects.Rectangle;
+      bg.setFillStyle(0x4a4238, 0.92);
+    });
   }
 
-  private createMoveButtons(): void {
-    const moves: { id: Move; label: string; color: number }[] = [
-      { id: 'slash', label: 'VÁGÁS', color: 0x7a2e0e },
-      { id: 'thrust', label: 'SZÚRÁS', color: 0xb99137 },
-      { id: 'parry', label: 'HÁRÍTÁS', color: 0x145f65 },
-      { id: 'dodge', label: 'KITÉR', color: 0x4a4238 },
-    ];
-    this.moveBtns = moves.map((m) =>
-      this.button(0, 0, 88, 38, m.color, m.label, () => this.playerMove(m.id)).setData('move', m.id),
-    );
-  }
-
-  private button(x: number, y: number, w: number, h: number, color: number, label: string, onTap: () => void): Phaser.GameObjects.Container {
-    const c = this.add.container(x, y).setDepth(10);
-    const bg = this.add.rectangle(0, 0, w, h, color, 0.95).setStrokeStyle(2, 0xfbf5e3);
-    const txt = this.add.text(0, 0, label, { fontFamily: '"Press Start 2P"', fontSize: '9px', color: '#fbf5e3' }).setOrigin(0.5);
-    c.add([bg, txt]);
-    c.setSize(w, h);
-    c.setInteractive({ useHandCursor: true });
-    c.on('pointerup', onTap);
-    c.on('pointerdown', () => bg.setFillStyle(color, 0.7));
-    c.on('pointerout', () => bg.setFillStyle(color, 0.95));
-    return c;
-  }
-
-  private updateStanceHighlight(): void {
-    for (const b of this.stanceBtns) {
-      const bg = b.list[0] as Phaser.GameObjects.Rectangle;
-      const s = b.getData('stance') as Stance;
-      bg.setStrokeStyle(s === this.player.stance ? 4 : 2, s === this.player.stance ? 0xe0b24f : 0xfbf5e3);
-    }
+  private setupInput(): void {
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.joystick.handlePointerDown(p));
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.joystick.handlePointerMove(p));
+    this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.joystick.handlePointerUp(p));
+    this.input.on('pointerupoutside', (p: Phaser.Input.Pointer) => this.joystick.handlePointerUp(p));
   }
 
   private layout(): void {
-    const w = this.scale.width;
-    const h = this.scale.height;
-    const cy = h / 2 + 40;
-    this.player.baseX = w / 2 - 110;
-    this.player.baseY = cy;
-    this.enemy.baseX = w / 2 + 110;
-    this.enemy.baseY = cy;
-    this.player.sprite.setPosition(this.player.baseX, this.player.baseY);
-    this.enemy.sprite.setPosition(this.enemy.baseX, this.enemy.baseY);
-    this.player.shadow.setPosition(this.player.baseX, this.player.baseY + 28);
-    this.enemy.shadow.setPosition(this.enemy.baseX, this.enemy.baseY + 28);
-    this.player.stanceLabel.setPosition(this.player.baseX, this.player.baseY - 130);
-    this.enemy.stanceLabel.setPosition(this.enemy.baseX, this.enemy.baseY - 130);
-    this.drawHpBar(this.player);
-    this.drawHpBar(this.enemy);
+    const W = this.scale.width;
+    const H = this.scale.height;
+    this.arenaLeft = 100;
+    this.arenaRight = W - 100;
+    this.refreshDeck();
 
-    // Stance gombok bal alul
-    this.stanceBtns.forEach((b, i) => b.setPosition(60, h - 160 + i * 44));
-    // Move gombok jobb alul
-    this.moveBtns.forEach((b, i) => b.setPosition(w - 60, h - 160 + i * 44));
+    this.bannerTxt?.setPosition(W / 2, 18);
 
-    this.turnLabel.setPosition(w / 2, 50);
+    this.joystick?.reposition(120, H - 140);
+
+    const rightX = W - 90;
+    this.attackBtn?.setPosition(rightX, H - 80);
+    this.parryBtn?.setPosition(rightX, H - 160);
+    this.dodgeBtn?.setPosition(rightX - 150, H - 80);
+
+    // HP bars és sprites a posX követésével frissülnek update-ben
   }
 
-  private playerMove(m: Move): void {
-    if (this.busy || this.ended) return;
-    this.busy = true;
+  // --- Akciók --------------------------------------------------------
+
+  private tryAttack(): void {
+    if (this.ended) return;
+    if (!this.canAct(this.player)) return;
+    this.startAttack(this.player);
+    vibrate('light');
+  }
+
+  private tryDodge(): void {
+    if (this.ended) return;
+    if (!this.canAct(this.player)) return;
+    if (this.player.dodgeCooldown > 0) return;
+    this.startDodge(this.player);
+    vibrate('light');
+  }
+
+  private canAct(d: Duelist): boolean {
+    return d.state === 'idle' || d.state === 'parrying';
+  }
+
+  private startAttack(d: Duelist): void {
+    d.state = 'attacking';
+    d.actionT = 0;
+    this.spawnSwordTrail(d);
     Audio.swordClang();
-    // Ellenfél AI-ja kiválasztja a stance + move-ot
-    const enemyMove = this.aiPickMove();
-    this.enemy.stance = enemyMove.stance;
-    this.enemy.stanceLabel.setText(this.stanceLabelText(this.enemy.stance));
-    this.enemy.intent = enemyMove;
-    this.refreshIntent();
-    this.resolve(m, enemyMove.move);
   }
 
-  private aiPickMove(): { stance: Stance; move: Move } {
-    const stances: Stance[] = ['high', 'middle', 'low'];
-    const moves: Move[] = ['slash', 'thrust', 'parry', 'dodge'];
-    const advantage = this.enemy.hp / this.enemy.hpMax;
-    let m: Move;
-    if (advantage < 0.4 && Math.random() < 0.45) m = 'parry';
-    else if (Math.random() < 0.35) m = 'thrust';
-    else if (Math.random() < 0.3) m = 'dodge';
-    else m = moves[Math.floor(Math.random() * moves.length)]!;
-    const s = stances[Math.floor(Math.random() * stances.length)]!;
-    return { stance: s, move: m };
+  private startDodge(d: Duelist): void {
+    d.state = 'dodging';
+    d.actionT = 0;
+    d.dodgeCooldown = DODGE_COOLDOWN;
+    // Hátralép — a facing ellentétes irányba
+    d.posX -= d.facing * DODGE_BACKSTEP;
+    this.clampPosX(d);
   }
 
-  private refreshIntent(): void {
-    if (!this.enemy.intent) return;
-    if (!this.enemy.intentLabel) {
-      this.enemy.intentLabel = this.add.text(0, 0, '', {
-        fontFamily: '"Press Start 2P"', fontSize: '8px', color: '#ffd7c7',
-        stroke: '#04141a', strokeThickness: 3,
-      }).setOrigin(0.5).setDepth(9);
-    }
-    const moveLabel: Record<Move, string> = { slash: 'vág', thrust: 'szúr', parry: 'hárít', dodge: 'kitér' };
-    this.enemy.intentLabel.setText(`«${moveLabel[this.enemy.intent.move]}»`);
-    this.enemy.intentLabel.setPosition(this.enemy.baseX, this.enemy.baseY - 118);
+  private clampPosX(d: Duelist): void {
+    d.posX = Phaser.Math.Clamp(d.posX, this.arenaLeft - 20, this.arenaRight + 20);
   }
 
-  private resolve(pl: Move, en: Move): void {
-    const playerLunges = pl === 'slash' || pl === 'thrust';
-    const enemyLunges = en === 'slash' || en === 'thrust';
-    // Animáció
-    if (playerLunges) this.lungeAnim(this.player);
-    if (enemyLunges) this.lungeAnim(this.enemy);
-
-    const plDamage = this.computeDamage(pl, en, this.player.stance, this.enemy.stance);
-    const enDamage = this.computeDamage(en, pl, this.enemy.stance, this.player.stance);
-    this.time.delayedCall(220, () => {
-      if (plDamage > 0) {
-        this.enemy.hp = Math.max(0, this.enemy.hp - plDamage);
-        this.flash(this.enemy.sprite, 0xff8080);
-        Particles.sparks(this, this.enemy.baseX, this.enemy.baseY - 30, 8, 12);
-        Audio.swordClang();
-      }
-      if (enDamage > 0) {
-        this.player.hp = Math.max(0, this.player.hp - enDamage);
-        this.flash(this.player.sprite, 0xff8080);
-        Particles.sparks(this, this.player.baseX, this.player.baseY - 30, 8, 12);
-        Audio.swordClang();
-      }
-      if (plDamage === 0 && enDamage === 0) {
-        // Csak fémes csengés
-        Particles.sparks(this, (this.player.baseX + this.enemy.baseX) / 2, (this.player.baseY + this.enemy.baseY) / 2 - 30, 5, 12);
-      }
-      this.drawHpBar(this.player);
-      this.drawHpBar(this.enemy);
-      vibrate(plDamage > enDamage ? 'medium' : enDamage > 0 ? 'warn' : 'light');
-      this.time.delayedCall(550, () => {
-        this.busy = false;
-        if (this.enemy.hp <= 0) this.finish('victory');
-        else if (this.player.hp <= 0) this.finish('defeat');
-        else this.turnLabel.setText('A te köröd');
-      });
-    });
-  }
-
-  private computeDamage(attacker: Move, defender: Move, aStance: Stance, dStance: Stance): number {
-    if (attacker === 'parry' || attacker === 'dodge') return 0;
-    const stanceMatch = aStance === dStance;
-    if (defender === 'parry') return stanceMatch ? 0 : 4;
-    if (defender === 'dodge') return Math.random() < 0.4 ? 5 : 0;
-    if (attacker === 'thrust' && defender === 'slash') return 16 + (stanceMatch ? 6 : 0);
-    if (attacker === 'slash' && defender === 'thrust') return 8;
-    // Mindkettő ugyanazt csinálja, vagy slash/slash, thrust/thrust → mindketten sebződnek
-    const base = attacker === 'slash' ? 12 : 9;
-    return base + (stanceMatch ? 4 : 0) + Math.floor(Math.random() * 3);
-  }
-
-  private lungeAnim(d: Duelist): void {
-    const dx = d.facing * 32;
+  private spawnSwordTrail(attacker: Duelist): void {
+    // Kardív görbe: a duelist előtt egy vastag szaggatott ív, fade-out 300 ms alatt
+    const startY = attacker.sprite.y - 60;
+    const endY = attacker.stance === 'high' ? startY - 40 : attacker.stance === 'low' ? startY + 40 : startY;
+    const x = attacker.posX + attacker.facing * 34;
+    const g = this.add.graphics().setDepth(9);
+    g.lineStyle(4, 0xfbf5e3, 0.9);
+    g.beginPath();
+    g.moveTo(x, startY - 20 * attacker.facing);
+    g.lineTo(x + 10 * attacker.facing, (startY + endY) / 2);
+    g.lineTo(x, endY + 20 * attacker.facing);
+    g.strokePath();
     this.tweens.add({
-      targets: [d.sprite, d.shadow],
-      x: { from: d.baseX, to: d.baseX + dx },
-      duration: 160,
-      yoyo: true,
-      ease: 'Quad.inOut',
-      onComplete: () => {
-        d.sprite.setX(d.baseX);
-        d.shadow.setX(d.baseX);
-      },
+      targets: g, alpha: 0, duration: 300, ease: 'Quad.easeIn',
+      onComplete: () => g.destroy(),
     });
-    // Sword swing flash
-    const sw = this.add.image(d.baseX + dx + d.facing * 14, d.baseY - 30, 'sword-swing').setDepth(7);
-    sw.setFlipX(d.facing === -1);
-    this.tweens.add({ targets: sw, alpha: 0, duration: 320, onComplete: () => sw.destroy() });
+  }
+
+  // --- Update --------------------------------------------------------
+
+  update(_t: number, dt: number): void {
+    if (!this.player || !this.enemy) return;
+    this.updatePlayerInput(dt);
+    this.tickDuelist(this.player, dt);
+    this.tickDuelist(this.enemy, dt);
+    this.updateAI(this.enemy, dt);
+    this.updateSprites();
+    this.checkEnd();
+  }
+
+  private updatePlayerInput(dt: number): void {
+    if (this.ended) return;
+    const p = this.player;
+    if (p.state === 'stunned' || p.state === 'dodging') return;
+
+    // Joystick y → stance
+    if (this.joystick.active) {
+      const mag = this.joystick.magnitude;
+      if (mag > 0.1) {
+        // y az sok rendszerben lefelé pozitív — ezt használjuk is
+        const sin = Math.sin(this.joystick.angle);
+        const newStance: Stance = sin < -0.35 ? 'high' : sin > 0.35 ? 'low' : 'middle';
+        if (newStance !== p.stance) {
+          p.stance = newStance;
+          p.stanceLabel.setText(this.stanceLabelText(newStance));
+        }
+        // x → move (advance / retreat)
+        const cos = Math.cos(this.joystick.angle);
+        if (Math.abs(cos) > 0.25 && p.state !== 'attacking') {
+          const moveMult = this.parryHeld ? PARRY_MOVE_MULT : 1.0;
+          const dir = cos > 0 ? 1 : -1;
+          p.posX += dir * MOVE_SPEED * moveMult * mag * dt;
+          this.clampPosX(p);
+        }
+      }
+    }
+
+    // Parry state
+    if (this.parryHeld && p.state === 'idle') {
+      p.state = 'parrying';
+    } else if (!this.parryHeld && p.state === 'parrying') {
+      p.state = 'idle';
+    }
+  }
+
+  private tickDuelist(d: Duelist, dt: number): void {
+    if (d.dodgeCooldown > 0) d.dodgeCooldown = Math.max(0, d.dodgeCooldown - dt);
+    if (d.stunT > 0) {
+      d.stunT = Math.max(0, d.stunT - dt);
+      if (d.stunT === 0 && d.state === 'stunned') d.state = 'idle';
+    }
+
+    if (d.state === 'attacking') {
+      const wasBeforeHit = d.actionT < ATTACK_HIT_AT;
+      d.actionT += dt;
+      const afterHit = d.actionT >= ATTACK_HIT_AT;
+      // A swing csúcsán ellenőrizzük a sebzést
+      if (wasBeforeHit && afterHit) {
+        this.resolveSwing(d);
+      }
+      if (d.actionT >= ATTACK_DURATION + ATTACK_RECOVERY) {
+        d.state = 'idle';
+        d.actionT = 0;
+      }
+    } else if (d.state === 'dodging') {
+      d.actionT += dt;
+      if (d.actionT >= DODGE_DURATION) {
+        d.state = 'idle';
+        d.actionT = 0;
+      }
+    }
+  }
+
+  private resolveSwing(attacker: Duelist): void {
+    const target = attacker === this.player ? this.enemy : this.player;
+    const dist = Math.abs(attacker.posX - target.posX);
+    if (dist > 110) {
+      // Nem ért el — csak fémes csengés, ha közelébe csapódott
+      return;
+    }
+    // Dodge-ban sebezhetetlen
+    if (target.state === 'dodging') {
+      Particles.sparks(this, (attacker.posX + target.posX) / 2, attacker.sprite.y - 40, 6, 12);
+      return;
+    }
+    // Parry check
+    if (target.state === 'parrying') {
+      const stanceMatch = target.stance === attacker.stance;
+      if (stanceMatch) {
+        // Tökéletes parry: 0 damage, a támadó hátralép (visszanyomás)
+        attacker.posX -= attacker.facing * PUSH_ON_PARRY;
+        this.clampPosX(attacker);
+        Audio.swordClang();
+        Particles.sparks(this, (attacker.posX + target.posX) / 2, attacker.sprite.y - 40, 14, 20);
+        this.cameras.main.shake(140, 0.006);
+        vibrate('medium');
+        return;
+      } else {
+        // Részleges parry: 30% sebzés, kisebb push
+        const dmg = Math.max(2, Math.floor(this.damageFor(attacker) * 0.3));
+        this.applyDamage(target, dmg, attacker, false);
+        return;
+      }
+    }
+
+    // Sima találat
+    const stanceMatch = target.stance === attacker.stance;
+    const dmg = this.damageFor(attacker) + (stanceMatch ? 4 : 0);
+    const pushBonus = stanceMatch ? 1.2 : 1.0;
+    this.applyDamage(target, dmg, attacker, true, pushBonus);
+  }
+
+  private damageFor(_attacker: Duelist): number {
+    return 10 + Math.floor(Math.random() * 6);
+  }
+
+  private applyDamage(target: Duelist, dmg: number, attacker: Duelist, fullPush: boolean, pushMult = 1.0): void {
+    target.hp = Math.max(0, target.hp - dmg);
+    this.flash(target.sprite, 0xff8080);
+    Particles.sparks(this, target.posX, target.sprite.y - 40, 8, 14);
+    this.spawnBloodSpray(target.posX, target.sprite.y - 40);
+    Audio.swordClang();
+    this.cameras.main.shake(160, 0.01);
+    vibrate('warn');
+    if (fullPush) {
+      target.posX += attacker.facing * PUSH_ON_HIT * pushMult;
+      this.clampPosX(target);
+    }
+    if (dmg >= 12) {
+      target.state = 'stunned';
+      target.stunT = STUN_AFTER_HIT;
+    }
+    this.drawHpBar(target);
+  }
+
+  private spawnBloodSpray(x: number, y: number): void {
+    const g = this.add.graphics().setDepth(10);
+    g.fillStyle(0xa62028, 1);
+    for (let i = 0; i < 10; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 3 + Math.random() * 10;
+      const px = x + Math.cos(a) * r;
+      const py = y + Math.sin(a) * r;
+      g.fillCircle(px, py, 1 + Math.random() * 2);
+    }
+    this.tweens.add({
+      targets: g, alpha: 0, duration: 500, ease: 'Quad.easeOut',
+      onComplete: () => g.destroy(),
+    });
   }
 
   private flash(s: Phaser.GameObjects.Image, tint: number): void {
@@ -319,31 +511,166 @@ export class DuelScene extends Phaser.Scene {
     this.time.delayedCall(120, () => s.clearTint());
   }
 
-  private finish(outcome: 'victory' | 'defeat'): void {
-    if (this.ended) return;
-    this.ended = true;
-    const g = useGame.getState();
-    if (outcome === 'victory') {
-      const loot = 250 + Math.floor(Math.random() * 450);
-      g.addGold(loot);
-      g.adjustMorale(+15);
-      g.unlockAchievement('duel-victor');
-      bus.emit('toast', { message: `Bordázás sikere! +${loot} arany`, kind: 'good' });
-      Audio.success();
-    } else {
-      g.addGold(-Math.floor(g.career.gold * 0.25));
-      g.damageShip(8, 8, 4);
-      g.adjustMorale(-12);
-      bus.emit('toast', { message: 'A bordázás kudarcot vallott!', kind: 'bad' });
-      Audio.failure();
-    }
-    bus.emit('duel:end', { outcome });
-    this.time.delayedCall(800, () => this.scene.start('World'));
+  private stanceLabelText(s: Stance): string {
+    return s === 'high' ? 'MAGAS' : s === 'middle' ? 'KÖZÉP' : 'ALACS.';
   }
 
-  update(): void {
-    if (this.busy) {
-      this.turnLabel.setText('Ellenfél válaszol…');
+  // --- AI ------------------------------------------------------------
+
+  private updateAI(d: Duelist, dt: number): void {
+    if (this.ended) return;
+    if (d.state === 'stunned' || d.state === 'attacking' || d.state === 'dodging') {
+      // Várunk amíg az akció lezajlik
+      if (d.aiPendingAttack && d.state === 'attacking') d.aiPendingAttack = false;
+      return;
     }
+
+    const player = this.player;
+    const dist = Math.abs(d.posX - player.posX);
+
+    // Telegráf: ha épp támadni készül, számoljuk le az időt
+    if (d.aiPendingAttack) {
+      d.aiTelegraphT -= dt;
+      d.intentLabel.setText(`⚔ ${this.stanceLabelText(d.stance)}`);
+      d.intentLabel.setAlpha(0.4 + 0.4 * Math.sin(this.time.now * 0.02));
+      if (d.aiTelegraphT <= 0) {
+        d.aiPendingAttack = false;
+        d.intentLabel.setText('');
+        this.startAttack(d);
+      }
+      return;
+    } else {
+      d.intentLabel.setText('');
+    }
+
+    d.aiDecisionT -= dt;
+    if (d.aiDecisionT > 0) {
+      // Közben mozog: közeledik vagy hátrál attól, hogy messze/közel van-e
+      const idealDist = 95;
+      if (dist > idealDist + 30) {
+        // Közeledik
+        d.posX += d.facing * MOVE_SPEED * 0.7 * dt;
+        this.clampPosX(d);
+      } else if (dist < idealDist - 30) {
+        d.posX -= d.facing * MOVE_SPEED * 0.4 * dt;
+        this.clampPosX(d);
+      }
+      return;
+    }
+    d.aiDecisionT = 400 + Math.random() * 500;
+
+    const hpRatio = d.hp / d.hpMax;
+
+    // Kis eséllyel dodge reakció ha a player épp támad
+    if (player.state === 'attacking' && d.dodgeCooldown <= 0 && hpRatio < 0.55 && Math.random() < 0.25) {
+      this.startDodge(d);
+      return;
+    }
+    // Parry szándék ha a player közelít és támadhat
+    if (dist < 110 && player.state !== 'attacking' && Math.random() < 0.18) {
+      d.state = 'parrying';
+      this.time.delayedCall(400 + Math.random() * 300, () => {
+        if (d.state === 'parrying') d.state = 'idle';
+      });
+      return;
+    }
+    // Támadás telegráf — ha megfelelő távolságban van
+    if (dist < 115) {
+      // Válasszon stance-et, telegrafáljon
+      const stances: Stance[] = ['high', 'middle', 'low'];
+      d.stance = stances[Math.floor(Math.random() * 3)]!;
+      d.stanceLabel.setText(this.stanceLabelText(d.stance));
+      d.aiPendingAttack = true;
+      d.aiTelegraphT = d.aiReactionTime;
+      return;
+    }
+  }
+
+  // --- Sprite update -------------------------------------------------
+
+  private updateSprites(): void {
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+    const smooth = 0.22;
+    for (const d of [this.player, this.enemy]) {
+      const targetX = d.posX;
+      const x = lerp(d.sprite.x, targetX, smooth);
+      d.sprite.setPosition(x, d.sprite.y);
+      d.shadow.setPosition(x, d.shadow.y);
+      d.hpBar.setPosition(0, 0);
+      this.drawHpBar(d);
+      d.stanceLabel.setPosition(x, d.sprite.y - 130);
+      d.intentLabel.setPosition(x, d.sprite.y - 116);
+
+      // Enyhe lendület-animáció támadáskor
+      if (d.state === 'attacking') {
+        const t = d.actionT / ATTACK_DURATION;
+        const phase = Math.sin(Math.PI * t);
+        d.sprite.setX(x + d.facing * 18 * phase);
+      }
+      // Parry pose: enyhe előrehajlás
+      if (d.state === 'parrying') {
+        d.sprite.setRotation(d.facing * 0.05);
+      } else {
+        d.sprite.setRotation(0);
+      }
+      // Dodge: enyhe átlátszóság
+      if (d.state === 'dodging') {
+        d.sprite.setAlpha(0.55);
+      } else {
+        d.sprite.setAlpha(1);
+      }
+    }
+  }
+
+  // --- Befejezés -----------------------------------------------------
+
+  private checkEnd(): void {
+    if (this.ended) return;
+    if (this.player.hp <= 0) return this.finish('defeat');
+    if (this.enemy.hp <= 0) return this.finish('victory');
+    // Pozícionális KO: ha a játékos a bal szélre ért, vagy az ellenfél a jobb szélre
+    if (this.player.posX <= this.arenaLeft) return this.finish('defeat', 'KIESTÉL!');
+    if (this.enemy.posX >= this.arenaRight) return this.finish('victory', 'KIDOBTAD!');
+  }
+
+  private finish(outcome: 'victory' | 'defeat', reason?: string): void {
+    if (this.ended) return;
+    this.ended = true;
+    // Slow-mo finiss
+    this.time.timeScale = 0.3;
+    this.cameras.main.zoomTo(1.2, 500);
+    this.showBanner(outcome === 'victory' ? (reason ?? 'GYŐZELEM!') : (reason ?? 'VERESÉG'), outcome === 'victory' ? '#88e07b' : '#ff8070');
+    this.time.delayedCall(700, () => {
+      this.time.timeScale = 1;
+      const g = useGame.getState();
+      if (outcome === 'victory') {
+        const loot = 250 + Math.floor(Math.random() * 450);
+        g.addGold(loot);
+        g.adjustMorale(+15);
+        g.unlockAchievement('duel-victor');
+        bus.emit('toast', { message: `Kardpárbaj sikere! +${loot} arany`, kind: 'good' });
+        Audio.success();
+      } else {
+        g.addGold(-Math.floor(g.career.gold * 0.25));
+        g.damageShip(8, 8, 4);
+        g.adjustMorale(-12);
+        bus.emit('toast', { message: this.defenderMode ? 'Elveszítetted a hajódat!' : 'A bordázás kudarcot vallott!', kind: 'bad' });
+        Audio.failure();
+      }
+      bus.emit('duel:end', { outcome });
+      this.time.delayedCall(800, () => this.scene.start('World'));
+    });
+  }
+
+  private showBanner(text: string, color: string): void {
+    const banner = this.add.text(this.scale.width / 2, this.scale.height / 2, text, {
+      fontFamily: '"Press Start 2P"', fontSize: '28px', color,
+      stroke: '#04141a', strokeThickness: 5,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(50).setAlpha(0);
+    this.tweens.add({
+      targets: banner, alpha: { from: 0, to: 1 },
+      scale: { from: 0.6, to: 1.15 }, duration: 250, yoyo: true, hold: 400,
+      onComplete: () => banner.destroy(),
+    });
   }
 }

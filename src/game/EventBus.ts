@@ -12,6 +12,7 @@ export type GameEvents = {
   'treasure:end': { gold: number };
   'toast': { message: string; kind?: 'info' | 'good' | 'bad' };
   'ui:request': { kind: 'pause' | 'settings' | 'menu' };
+  'ui:pause': { paused: boolean };
 };
 
 export const bus = mitt<GameEvents>();

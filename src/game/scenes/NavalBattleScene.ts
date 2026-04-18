@@ -184,6 +184,14 @@ export class NavalBattleScene extends Phaser.Scene {
     this.layoutHud();
     Audio.wave();
     this.time.delayedCall(500, () => this.battleCry('naval.cryRally'));
+
+    // UI pause (pl. tutorial) — scene megállítása amíg nyitva van
+    const pauseHandler = ({ paused }: { paused: boolean }) => {
+      if (paused) this.scene.pause();
+      else this.scene.resume();
+    };
+    bus.on('ui:pause', pauseHandler);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => bus.off('ui:pause', pauseHandler));
   }
 
   // --- Setup -----------------------------------------------------------
