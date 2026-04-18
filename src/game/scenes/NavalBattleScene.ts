@@ -45,11 +45,13 @@ interface CombatShip {
 // Csata-matek helperek — változatlanok a rewrite során
 // =========================================================================
 
-/** Maximális hatásos lőtáv pixelben — hajó-osztály és lőszer függvénye. */
+/** Maximális hatásos lőtáv pixelben — hajó-osztály és lőszer függvénye.
+ *  Messziről is lőhet a játékos, csak alacsony esélyű lesz. */
 function rangeFor(ship: CombatShip, ammo: Ammo): number {
   const s = SHIPS[ship.shipClass];
-  const base = 260 + s.cannons * 5.2;
-  const ammoMult = ammo === 'grape' ? 0.55 : ammo === 'chain' ? 0.85 : 1.0;
+  // Sloop (6 ágyú): 440, brig (12): 500, frigate (24): 620, galleon (20): 580, manOwar (40): 780
+  const base = 380 + s.cannons * 10;
+  const ammoMult = ammo === 'grape' ? 0.5 : ammo === 'chain' ? 0.8 : 1.0;
   return base * ammoMult;
 }
 
@@ -439,9 +441,14 @@ export class NavalBattleScene extends Phaser.Scene {
     const dist = Phaser.Math.Distance.Between(attacker.ship.x, attacker.ship.y, target.ship.x, target.ship.y);
     const maxR = rangeFor(attacker, ammo);
     const distNorm = Phaser.Math.Clamp(dist / maxR, 0, 1.2);
-    const spreadBase = 8 + distNorm * 32;
+    // Szórás: közel kicsi, messze nagy. A lövő képessége is számít.
+    const spreadBase = 8 + distNorm * 48;
     const spreadMult = 1 + (1 - attacker.aiSkill) * 0.8;
     const maxSpread = spreadBase * spreadMult;
+    // Lövedék-sebesség pixel/ms. Messzi lövések tovább tartanak → van idő kicselezni.
+    const projSpeed = ammo === 'grape' ? 1.1 : 0.85;
+    // Találati sugár hajó-sziluett szerint
+    const hitRadius = target.silhouette === 'small' ? 22 : target.silhouette === 'medium' ? 30 : 38;
     for (let i = 0; i < shots; i++) {
       const offset = (i - (shots - 1) / 2) * 12;
       const px = attacker.ship.x + Math.cos(attacker.heading) * offset + ox * 20;
@@ -451,22 +458,34 @@ export class NavalBattleScene extends Phaser.Scene {
       const ball = this.add.image(px, py, tex).setDepth(11);
       const spreadX = (Math.random() - 0.5) * maxSpread;
       const spreadY = (Math.random() - 0.5) * maxSpread;
-      const tx = target.ship.x + Math.cos(sideAngle) * spreadX + spreadY * 0.4;
-      const ty = target.ship.y + Math.sin(sideAngle) * spreadX + spreadY * 0.4;
+      // Lövéskori célpozíció — a hajó későbbi mozgása kihúzhatja alóla
+      const aimX = target.ship.x + Math.cos(sideAngle) * spreadX + spreadY * 0.4;
+      const aimY = target.ship.y + Math.sin(sideAngle) * spreadX + spreadY * 0.4;
+      const travel = Phaser.Math.Distance.Between(px, py, aimX, aimY);
+      const duration = Math.max(200, travel / projSpeed);
       this.tweens.add({
         targets: ball,
-        x: tx, y: ty,
-        duration: 380 + Math.random() * 140,
-        ease: 'Quad.easeOut',
+        x: aimX, y: aimY,
+        duration,
+        ease: 'Linear',
         onComplete: () => {
           ball.destroy();
+          // Pozíció-alapú check: elmozdult-e a cél annyit, hogy kikerülje a lövedéket?
+          const distToTargetNow = Phaser.Math.Distance.Between(aimX, aimY, target.ship.x, target.ship.y);
+          if (distToTargetNow > hitRadius) {
+            // KICSELEZVE — auto-miss, splash az aim-pontnál
+            Particles.splash(this, aimX, aimY);
+            Audio.splash();
+            return;
+          }
+          // A hajó még ott van — találati dobás
           const hit = Math.random() < hitChance(attacker, target, ammo, this.wind);
           if (hit) {
             this.applyHit(target, ammo, raking);
-            Particles.explosion(this, tx, ty, raking ? 18 : 13);
+            Particles.explosion(this, target.ship.x, target.ship.y, raking ? 18 : 13);
             Audio.cannonHit();
           } else {
-            Particles.splash(this, tx, ty);
+            Particles.splash(this, aimX, aimY);
             Audio.splash();
           }
         },
@@ -475,7 +494,7 @@ export class NavalBattleScene extends Phaser.Scene {
     if (raking && target === this.enemy) {
       this.time.delayedCall(320, () => this.showBanner('RAKELÉS!', '#ffb37a'));
     }
-    this.time.delayedCall(900, () => this.checkEnd());
+    this.time.delayedCall(1500, () => this.checkEnd());
   }
 
   private applyHit(target: CombatShip, ammo: Ammo, raking: boolean): void {
@@ -638,9 +657,40 @@ export class NavalBattleScene extends Phaser.Scene {
     this.tickReload(this.player, deltaMs);
     this.aiUpdate(this.enemy, deltaMs);
     this.updateEnvironmentalEffects();
+    this.checkCollision();
     if (!this.ended) this.updateHud();
     this.drawHud();
     this.checkEnd();
+  }
+
+  /** Auto-board ha a hajók fizikailag egymásnak mennek. */
+  private checkCollision(): void {
+    if (this.ended) return;
+    const dist = Phaser.Math.Distance.Between(
+      this.player.ship.x, this.player.ship.y,
+      this.enemy.ship.x, this.enemy.ship.y,
+    );
+    // Sziluett-függő ütközési sugár: két hajó mérete összegezve
+    const rPlayer = this.player.silhouette === 'small' ? 18 : this.player.silhouette === 'medium' ? 24 : 32;
+    const rEnemy = this.enemy.silhouette === 'small' ? 18 : this.enemy.silhouette === 'medium' ? 24 : 32;
+    if (dist >= rPlayer + rEnemy) return;
+    // Ütközés! Szikra, rezgés, bann, aztán Duel scene
+    this.ended = true;
+    Particles.sparks(this, (this.player.ship.x + this.enemy.ship.x) / 2, (this.player.ship.y + this.enemy.ship.y) / 2, 14, 20);
+    Audio.cannonHit();
+    vibrate('heavy');
+    // Ki a támadó? A hajók ütközésekor aki nagyobb sebességgel halad a másikra, az a támadó.
+    // Egyszerűsítés: a crew-arány alapján döntsünk — játékos bordázik-e vagy védekezik.
+    const defender = this.player.crew < this.enemy.crew;
+    this.showBanner(defender ? 'BEKERÍTETTEK!' : 'BORDÁZÁS!', '#ff8a3d');
+    this.battleCry(defender ? 'naval.cryDefeat' : 'naval.cryBoard');
+    this.time.delayedCall(900, () => {
+      this.scene.start('Duel', {
+        enemyCrew: this.enemy.crew,
+        enemyKind: this.enemyKind,
+        defender,
+      });
+    });
   }
 
   private tickReload(s: CombatShip, dt: number): void {
@@ -680,12 +730,11 @@ export class NavalBattleScene extends Phaser.Scene {
         else if (dist < ideal - 60) s.desiredHeading = angleTo + Math.PI;
         else s.desiredHeading = angleTo - Math.PI / 2;
       } else {
+        // Kalóz: közelít a bordázáshoz. Az ütközési check (checkCollision)
+        // automatikusan átszállási párbajt indít ha összeérnek a hajók.
         if (dist > 150) s.desiredHeading = angleTo;
         else if (dist > 95) s.desiredHeading = angleTo - Math.PI / 2.2;
-        else {
-          this.aiAttemptBoard(s);
-          s.desiredHeading = angleTo;
-        }
+        else s.desiredHeading = angleTo;
       }
       if (s.hull < s.hullMax * 0.18 || s.crew < s.crewMax * 0.2) {
         s.desiredHeading = angleTo + Math.PI;
@@ -717,19 +766,7 @@ export class NavalBattleScene extends Phaser.Scene {
     s.aiCooldown = 700 + Math.random() * 500;
   }
 
-  private aiAttemptBoard(s: CombatShip): void {
-    if (this.ended) return;
-    const dist = Phaser.Math.Distance.Between(s.ship.x, s.ship.y, this.player.ship.x, this.player.ship.y);
-    if (dist > 70) return;
-    if (this.enemyKind !== 'pirate') return;
-    const playerWeak = this.player.hull < this.player.hullMax * 0.3 || this.player.crew < this.player.crewMax * 0.35;
-    if (!playerWeak) return;
-    this.ended = true;
-    this.showBanner('ÁTSZÁLLNAK!', '#ff8a3d');
-    this.time.delayedCall(800, () => this.scene.start('Duel', { enemyCrew: s.crew, enemyKind: this.enemyKind, defender: true }));
-  }
-
-  private updateEnvironmentalEffects(): void {
+private updateEnvironmentalEffects(): void {
     this.damageAccum += 16;
     if (this.damageAccum < 800) return;
     this.damageAccum = 0;
