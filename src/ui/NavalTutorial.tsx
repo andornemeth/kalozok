@@ -10,29 +10,24 @@ interface Tip {
 
 const TIPS: Tip[] = [
   {
-    emoji: '🧭',
-    title: 'Kormányzás',
-    body: 'Bal alsó sarokban a ◀ ▶ gombokkal forgatod a hajót. Tartsd lenyomva, és addig fordul, amíg el nem engeded. A hajód saját sebességén forog — nagyobb hajó lassabban.',
+    emoji: '🕹️',
+    title: 'Kormánybot',
+    body: 'Bal alsó sarokban a virtuális kormánybot. Nyomd le az ujjad és húzd abba az irányba amerre a hajódnak mennie kell. A hajó a saját fordulási sebességén fordul oda — nagyobb hajó lassabban. Elengeded, marad azon az irányon.',
   },
   {
-    emoji: '⛵',
-    title: 'Vitorla üzemmód',
-    body: 'A VITORLA gomb átvált teli ↔ csata vitorlára. Csata-vitorlával lassabb vagy (55% sebesség), de jóval fordulékonyabb (1.7× turn rate). Közelharcban használd.',
+    emoji: '🧭',
+    title: 'Irány-segítő nyilak',
+    body: 'A saját hajód előtt egy sárga nyíl mutatja az aktuális haladási irányt. Ha a kormánybottal máshová húzol, egy szaggatott szürke nyíl jelzi a célirányt — addig fordul, amíg egybe nem esnek.',
   },
   {
     emoji: '🔥',
-    title: 'Tüzelés',
-    body: 'A TŰZ gomb színe mutatja az állapotot:\n🟢 TŰZ BAL/JOBB — lőhetsz\n🟡 TÖLT… — reload fut\n🔴 FORDULJ — nem vagy broadside\n🔴 TÚL MESSZE — lőtávon kívül\nOldalra kell fordulni hogy az ágyúk az ellenfélre nézzenek!',
+    title: 'Tüzelés és lő-ív',
+    body: 'A hajód két oldalán áttetsző fehér cikkek mutatják az ágyúk lő-ívét. Ha az ellenfél beleér + lőtávon belül van + a reload kész → a TŰZ gomb zöld („TŰZ BAL/JOBB"). Piros: fordulj vagy közeledj. Sárga: tölt.',
   },
   {
     emoji: '💥',
-    title: 'Lőszer típusok',
-    body: 'GOLYÓ — törzset sebzi, hosszú lőtáv.\nLÁNC — vitorlát tépi, közepes táv.\nKARTÁCS — legénységet írtja, rövid táv.\nHa a hátuk/orruk tengelyébe lősz (RAKELÉS), 1.8× sebzés!',
-  },
-  {
-    emoji: '⚔️',
-    title: 'Bordázás vagy menekülés',
-    body: 'BORDA gomb: ha közel (< 90px) vagy és az ellenfél gyenge, átszálltok kardpárbajra.\nMENEKÜL: kiszállás a csatából. Ha az ellenfél oldalára fordulsz közben, súlyosan sérülhetsz.',
+    title: 'Lőszerek és akciók',
+    body: 'AMMO gomb tap: GOLYÓ (törzs, hosszú táv) → LÁNC (vitorla, közepes) → KARTÁCS (legénység, rövid).\nBow/stern tengelybe lőni RAKELÉS = 1.8× sebzés.\nKözel: BORDA → kardpárbaj. MENEKÜL: kiszállás, kicsi sebzéssel.',
   },
 ];
 
