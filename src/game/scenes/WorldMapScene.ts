@@ -100,7 +100,6 @@ export class WorldMapScene extends Phaser.Scene {
   private waveCrests: Phaser.GameObjects.Image[] = [];
   private encounterGrace = 2200;
   private saveTimer = 0;
-  private tintOverlay?: Phaser.GameObjects.Rectangle;
   private hintText?: Phaser.GameObjects.Text;
   private dayLabel!: Phaser.GameObjects.Text;
   private spawnTimer = 0;
@@ -593,20 +592,18 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   // --- Day/night ---
+  //
+  // Korábban egy 4 napos (valós időben ~9 másodperces) ciklus sötét kék
+  // overlay-jel elszürkítette a térképet. A gyors villogás zavaró volt,
+  // ezért kikapcsolva — ha kell, később normális nappali/éjszakai ciklust
+  // építünk (pl. 60 napos időléptékkel).
 
   private setupDayNight(): void {
-    this.tintOverlay = this.add
-      .rectangle(0, 0, WORLD_W, WORLD_H, 0x0a1a3a, 0)
-      .setOrigin(0, 0)
-      .setDepth(40);
+    // szándékosan üres
   }
 
   private updateDayNight(): void {
-    if (!this.tintOverlay) return;
-    const days = useGame.getState().career.daysAtSea;
-    const phase = (days % 4) / 4;
-    const nightness = Math.max(0, Math.sin((phase - 0.25) * Math.PI * 2));
-    this.tintOverlay.fillAlpha = nightness * 0.45;
+    // szándékosan üres
   }
 
   // --- Tutorial ---
