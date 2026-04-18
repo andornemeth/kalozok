@@ -305,13 +305,19 @@ export const useGame = create<GameState>()(
     {
       name: 'kalozok:game',
       storage: createJSONStorage(() => localStorage),
-      version: 2,
-      migrate: (persisted) => {
+      version: 3,
+      migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Record<string, unknown>;
         if (!s.quests) s.quests = initialQuests;
         if (s.worldPos === undefined) s.worldPos = null;
         if (!s.achievements) s.achievements = [];
         if (!s.flags) s.flags = initialFlags;
+        // v3: Karib-térkép koordinátarendszere megváltozott (1600×1100). Régi
+        // mentések (820×620) inkompatibilis pozíciói nullra esnek, hogy a
+        // játékos a kezdő kikötőben jelenjen meg.
+        if (version < 3) {
+          s.worldPos = null;
+        }
         return s as unknown as GameState;
       },
     },

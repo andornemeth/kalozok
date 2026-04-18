@@ -2,19 +2,25 @@ import Phaser from 'phaser';
 import { bus } from '@/game/EventBus';
 import { useGame } from '@/state/gameStore';
 import { vibrate } from '@/utils/haptics';
+import { Audio } from '@/audio/AudioManager';
+import { Particles } from '@/game/systems/Particles';
 import { checkQuestCompletion } from '@/game/systems/QuestSystem';
 
-type UnitType = 'buccaneer' | 'soldier' | 'cavalry';
+type UnitType = 'buccaneer' | 'soldier' | 'cavalry' | 'cannon';
 type Side = 'player' | 'enemy';
 
 interface Unit {
-  rect: Phaser.GameObjects.Container;
+  group: Phaser.GameObjects.Container;
+  body: Phaser.GameObjects.Image;
+  hpBar: Phaser.GameObjects.Graphics;
   side: Side;
   type: UnitType;
   hp: number;
+  hpMax: number;
   speed: number;
   lane: number;
   cooldown: number;
+  fireT: number;
 }
 
 interface Gate {
@@ -25,47 +31,44 @@ interface Gate {
   x: number;
   y: number;
   bar: Phaser.GameObjects.Graphics;
-  label: Phaser.GameObjects.Text;
+  sprite: Phaser.GameObjects.Image;
 }
 
-const UNIT_COLORS: Record<UnitType, number> = {
-  buccaneer: 0xe0b24f,
-  soldier: 0x4f8bff,
-  cavalry: 0xd04040,
-};
-
 const UNIT_LABEL: Record<UnitType, string> = {
-  buccaneer: 'KAL',
-  soldier: 'KAT',
-  cavalry: 'LOV',
+  buccaneer: 'KAL', soldier: 'KAT', cavalry: 'LOV', cannon: 'ÁGY',
+};
+const UNIT_TEX: Record<UnitType, string> = {
+  buccaneer: 'unit-buccaneer', soldier: 'unit-soldier', cavalry: 'unit-cavalry', cannon: 'unit-cannon',
+};
+const UNIT_STATS: Record<UnitType, { hp: number; speed: number; cost: number; range: number; damage: number; reload: number }> = {
+  buccaneer: { hp: 26, speed: 0.060, cost: 1, range: 22, damage: 8, reload: 600 },
+  soldier:   { hp: 32, speed: 0.040, cost: 1, range: 90, damage: 6, reload: 1100 },
+  cavalry:   { hp: 22, speed: 0.090, cost: 2, range: 18, damage: 11, reload: 700 },
+  cannon:    { hp: 28, speed: 0.018, cost: 3, range: 220, damage: 18, reload: 1900 },
 };
 
-const UNIT_STATS: Record<UnitType, { hp: number; speed: number; cost: number }> = {
-  buccaneer: { hp: 22, speed: 0.055, cost: 1 },
-  soldier: { hp: 28, speed: 0.040, cost: 1 },
-  cavalry: { hp: 20, speed: 0.078, cost: 2 },
-};
-
-const GATE_MAX_HP = 60;
-const MATCH_MAX = 120000;
+const GATE_MAX_HP = 80;
+const MATCH_MAX_MS = 130000;
+const STARTING_POOL = 36;
 
 export class LandBattleScene extends Phaser.Scene {
   private units: Unit[] = [];
   private gates: Gate[] = [];
   private selected: UnitType = 'buccaneer';
-  private playerPool = 28;
-  private enemyPool = 28;
-  private enemyTimers: number[] = [3000, 5500, 7000];
+  private playerPool = STARTING_POOL;
+  private enemyPool = STARTING_POOL;
+  private enemyTimers: number[] = [2400, 4500, 6500];
   private elapsed = 0;
   private ended = false;
-
   private poolLabel!: Phaser.GameObjects.Text;
   private enemyLabel!: Phaser.GameObjects.Text;
   private statusLabel!: Phaser.GameObjects.Text;
+  private timerLabel!: Phaser.GameObjects.Text;
   private unitButtons: Phaser.GameObjects.Container[] = [];
   private laneHeight = 0;
-  private leftX = 80;
+  private leftX = 70;
   private rightX = 0;
+  private topOffset = 92;
 
   constructor() {
     super('Land');
@@ -73,137 +76,139 @@ export class LandBattleScene extends Phaser.Scene {
 
   create(): void {
     bus.emit('scene:changed', { key: 'land' });
-    this.cameras.main.fadeIn(350, 4, 20, 26);
+    this.input.removeAllListeners();
+    this.cameras.main.fadeIn(380, 4, 20, 26);
     this.ended = false;
     this.units = [];
     this.gates = [];
     this.unitButtons = [];
-    this.playerPool = 28;
-    this.enemyPool = 28;
-    this.enemyTimers = [3000, 5500, 7000];
+    this.playerPool = STARTING_POOL;
+    this.enemyPool = STARTING_POOL;
+    this.enemyTimers = [2400, 4500, 6500];
     this.elapsed = 0;
+    this.rightX = this.scale.width - 70;
 
-    this.rightX = this.scale.width - 80;
     this.drawBackground();
     this.createLanes();
     this.createGates();
+    this.createKeeps();
     this.createHud();
     this.createControls();
     this.scale.on('resize', () => this.layoutHud());
     this.layoutHud();
+    Audio.boom();
   }
 
   private drawBackground(): void {
+    const w = this.scale.width;
+    const h = this.scale.height;
     const g = this.add.graphics();
-    g.fillStyle(0x3a6d3a, 1);
-    g.fillRect(0, 0, this.scale.width, this.scale.height);
-    // Két part — bal oldalon homokos tengerpart, jobbon város-kavicsos
-    g.fillStyle(0xe8d28a, 1);
-    g.fillRect(0, 0, 40, this.scale.height);
-    g.fillStyle(0x7a7a7a, 1);
-    g.fillRect(this.scale.width - 40, 0, 40, this.scale.height);
-    // Víz bal oldalon
+    // Föld - dzsungel padlóval
+    g.fillStyle(0x355833, 1);
+    g.fillRect(0, 0, w, h);
+    // Tengerpart bal oldalon (rendezett kalóz partraszállás)
     g.fillStyle(0x1a7f86, 1);
-    g.fillRect(0, 0, 8, this.scale.height);
+    g.fillRect(0, 0, 18, h);
+    g.fillStyle(0xe8d28a, 1);
+    g.fillRect(18, 0, 28, h);
+    // Város köveiken jobb oldalon
+    g.fillStyle(0x6a5a48, 1);
+    g.fillRect(w - 32, 0, 32, h);
+    // Pálma-pontok véletlenszerűen
+    for (let i = 0; i < 22; i++) {
+      const px = 70 + Math.random() * (w - 140);
+      const py = 30 + Math.random() * (h - 100);
+      this.add.image(px, py, Math.random() < 0.4 ? 'palm-large' : 'palm').setDepth(2).setAlpha(0.55);
+    }
   }
 
   private createLanes(): void {
-    const topOffset = 70;
-    const bottomOffset = 110;
-    const usable = this.scale.height - topOffset - bottomOffset;
+    const usable = this.scale.height - this.topOffset - 130;
     this.laneHeight = usable / 3;
     const g = this.add.graphics();
     for (let i = 0; i < 3; i++) {
-      const y = topOffset + i * this.laneHeight;
+      const y = this.topOffset + i * this.laneHeight;
       g.fillStyle(i % 2 === 0 ? 0x2f5a2f : 0x346434, 1);
-      g.fillRect(8, y + 2, this.scale.width - 16, this.laneHeight - 4);
-      // Útpálya
-      g.fillStyle(0x5a4a2a, 0.3);
-      g.fillRect(40, y + this.laneHeight / 2 - 4, this.scale.width - 80, 8);
+      g.fillRect(20, y + 2, this.scale.width - 40, this.laneHeight - 4);
+      g.fillStyle(0x5a4a2a, 0.35);
+      g.fillRect(50, y + this.laneHeight / 2 - 4, this.scale.width - 100, 8);
+      // Apró fűcsomók
+      for (let j = 0; j < 5; j++) {
+        const fx = 70 + Math.random() * (this.scale.width - 140);
+        const fy = y + 6 + Math.random() * (this.laneHeight - 12);
+        g.fillStyle(0x6b8f3d, 0.6);
+        g.fillCircle(fx, fy, 2);
+      }
     }
   }
 
   private createGates(): void {
-    const topOffset = 70;
     for (let i = 0; i < 3; i++) {
-      const y = topOffset + i * this.laneHeight + this.laneHeight / 2;
-      this.gates.push(this.makeGate('player', i, 40, y));
-      this.gates.push(this.makeGate('enemy', i, this.scale.width - 40, y));
+      const y = this.topOffset + i * this.laneHeight + this.laneHeight / 2;
+      this.gates.push(this.makeGate('player', i, this.leftX - 10, y));
+      this.gates.push(this.makeGate('enemy', i, this.rightX + 10, y));
     }
   }
 
   private makeGate(side: Side, lane: number, x: number, y: number): Gate {
-    const color = side === 'player' ? 0xe0b24f : 0xb94a3b;
-    const dark = side === 'player' ? 0x8b5a2b : 0x5c2a22;
-    // Falsziluett
-    const g = this.add.graphics();
-    g.fillStyle(dark, 1);
-    g.fillRoundedRect(x - 14, y - 20, 28, 40, 4);
-    g.fillStyle(color, 1);
-    g.fillRoundedRect(x - 10, y - 16, 20, 32, 3);
-    // Kapuív
-    g.fillStyle(0x04141a, 1);
-    g.fillRoundedRect(x - 6, y - 8, 12, 14, 3);
-    // Zászló
-    g.fillStyle(dark, 1);
-    g.fillRect(x - 1, y - 30, 2, 10);
-    g.fillStyle(side === 'player' ? 0xfbf5e3 : 0x04141a, 1);
-    g.fillTriangle(x + 1, y - 28, x + 8, y - 25, x + 1, y - 22);
-
-    const bar = this.add.graphics();
-    const label = this.add
-      .text(x, y + 26, '', { fontFamily: '"Press Start 2P"', fontSize: '8px', color: '#fbf5e3' })
-      .setOrigin(0.5);
-
-    const gate: Gate = { side, lane, hp: GATE_MAX_HP, hpMax: GATE_MAX_HP, x, y, bar, label };
+    const sprite = this.add.image(x, y, 'fort-gate').setOrigin(0.5).setDepth(4);
+    if (side === 'player') sprite.setFlipX(true);
+    const bar = this.add.graphics().setDepth(5);
+    const gate: Gate = { side, lane, hp: GATE_MAX_HP, hpMax: GATE_MAX_HP, x, y, bar, sprite };
     this.drawGateBar(gate);
     return gate;
   }
 
-  private drawGateBar(g: Gate): void {
-    g.bar.clear();
-    const w = 28;
-    const h = 4;
-    const bx = g.x - w / 2;
-    const by = g.y + 16;
-    g.bar.fillStyle(0x04141a, 0.8);
-    g.bar.fillRect(bx, by, w, h);
-    g.bar.fillStyle(g.side === 'player' ? 0xe0b24f : 0xb94a3b, 1);
-    g.bar.fillRect(bx, by, Math.max(0, (g.hp / g.hpMax) * w), h);
-    g.label.setText(`${Math.max(0, Math.round(g.hp))}`);
+  private createKeeps(): void {
+    // Hátsó keep mindkét oldalon
+    const w = this.scale.width;
+    const playerKeep = this.add.image(20, this.scale.height / 2, 'fort-keep').setOrigin(0.5).setDepth(3).setScale(0.85);
+    playerKeep.setFlipX(true);
+    void playerKeep;
+    this.add.image(w - 20, this.scale.height / 2, 'fort-keep').setOrigin(0.5).setDepth(3).setScale(0.85);
+  }
+
+  private drawGateBar(gate: Gate): void {
+    gate.bar.clear();
+    const w = 36;
+    const x = gate.x - w / 2;
+    const y = gate.y - 50;
+    gate.bar.fillStyle(0x04141a, 0.85);
+    gate.bar.fillRect(x - 1, y - 1, w + 2, 5);
+    gate.bar.fillStyle(gate.side === 'player' ? 0xe0b24f : 0xc0392b, 1);
+    gate.bar.fillRect(x, y, Math.max(0, (gate.hp / gate.hpMax) * w), 3);
+    if (gate.hp <= 0) gate.sprite.setTexture('fort-gate-broken');
   }
 
   private createHud(): void {
     this.add
-      .text(this.scale.width / 2, 10, 'VÁROSOSTROM', {
-        fontFamily: '"Press Start 2P"',
-        fontSize: '12px',
-        color: '#fbf5e3',
-        stroke: '#04141a',
-        strokeThickness: 3,
+      .text(this.scale.width / 2, 8, 'VÁROSOSTROM', {
+        fontFamily: '"Press Start 2P"', fontSize: '14px', color: '#fbf5e3',
+        stroke: '#04141a', strokeThickness: 4,
       })
-      .setOrigin(0.5, 0)
-      .setDepth(10);
+      .setOrigin(0.5, 0).setDepth(10);
     this.poolLabel = this.add
       .text(16, 38, '', { fontFamily: '"Press Start 2P"', fontSize: '10px', color: '#e0b24f' })
       .setDepth(10);
     this.enemyLabel = this.add
-      .text(this.scale.width - 16, 38, '', { fontFamily: '"Press Start 2P"', fontSize: '10px', color: '#b94a3b' })
-      .setOrigin(1, 0)
-      .setDepth(10);
+      .text(this.scale.width - 16, 38, '', { fontFamily: '"Press Start 2P"', fontSize: '10px', color: '#c0392b' })
+      .setOrigin(1, 0).setDepth(10);
     this.statusLabel = this.add
       .text(this.scale.width / 2, 38, '', { fontFamily: '"Press Start 2P"', fontSize: '9px', color: '#fbf5e3' })
-      .setOrigin(0.5, 0)
-      .setDepth(10);
+      .setOrigin(0.5, 0).setDepth(10);
+    this.timerLabel = this.add
+      .text(this.scale.width / 2, 60, '', { fontFamily: '"Press Start 2P"', fontSize: '9px', color: '#88e07b' })
+      .setOrigin(0.5, 0).setDepth(10);
     this.refreshLabels();
   }
 
   private createControls(): void {
-    const units: UnitType[] = ['buccaneer', 'soldier', 'cavalry'];
+    const units: UnitType[] = ['buccaneer', 'soldier', 'cavalry', 'cannon'];
     units.forEach((u, i) => {
-      const x = 70 + i * 110;
-      const y = this.scale.height - 50;
-      const btn = this.button(x, y, 100, 46, UNIT_COLORS[u], `${UNIT_LABEL[u]}\n${UNIT_STATS[u].cost}fő`, () => {
+      const x = 60 + i * 90;
+      const y = this.scale.height - 60;
+      const stats = UNIT_STATS[u];
+      const btn = this.button(x, y, 84, 50, 0x145f65, `${UNIT_LABEL[u]}\n${stats.cost}fő`, () => {
         this.selected = u;
         this.refreshUnitButtons();
         vibrate('light');
@@ -213,27 +218,18 @@ export class LandBattleScene extends Phaser.Scene {
     });
     this.refreshUnitButtons();
 
-    const topOffset = 70;
     for (let i = 0; i < 3; i++) {
-      const y = topOffset + i * this.laneHeight + this.laneHeight / 2;
-      this.button(this.scale.width / 2, y, 80, 30, 0x145f65, 'KÜLD', () => this.deploy(i));
+      const y = this.topOffset + i * this.laneHeight + this.laneHeight / 2;
+      this.button(this.scale.width / 2, y, 84, 32, 0x7a2e0e, 'KÜLD', () => this.deploy(i));
     }
   }
 
-  private button(
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    color: number,
-    text: string,
-    onTap: () => void,
-  ): Phaser.GameObjects.Container {
+  private button(x: number, y: number, w: number, h: number, color: number, text: string, onTap: () => void): Phaser.GameObjects.Container {
     const c = this.add.container(x, y).setDepth(11);
     const bg = this.add.rectangle(0, 0, w, h, color, 0.95).setStrokeStyle(2, 0xfbf5e3);
-    const label = this.add
-      .text(0, 0, text, { fontFamily: '"Press Start 2P"', fontSize: '9px', color: '#fbf5e3', align: 'center' })
-      .setOrigin(0.5);
+    const label = this.add.text(0, 0, text, {
+      fontFamily: '"Press Start 2P"', fontSize: '9px', color: '#fbf5e3', align: 'center',
+    }).setOrigin(0.5);
     c.add([bg, label]);
     c.setSize(w, h);
     c.setInteractive({ useHandCursor: true });
@@ -252,13 +248,15 @@ export class LandBattleScene extends Phaser.Scene {
   }
 
   private layoutHud(): void {
-    this.rightX = this.scale.width - 80;
+    this.rightX = this.scale.width - 70;
     this.refreshLabels();
   }
 
   private refreshLabels(): void {
     this.poolLabel.setText(`Sereged: ${this.playerPool}`);
     this.enemyLabel.setText(`Védők: ${this.enemyPool}`);
+    const remain = Math.max(0, MATCH_MAX_MS - this.elapsed) / 1000;
+    this.timerLabel.setText(`Idő: ${remain.toFixed(0)}s`);
   }
 
   private deploy(lane: number): void {
@@ -271,28 +269,25 @@ export class LandBattleScene extends Phaser.Scene {
     this.playerPool -= stat.cost;
     this.spawnUnit('player', this.selected, lane);
     this.refreshLabels();
+    Audio.click();
   }
 
   private spawnUnit(side: Side, type: UnitType, lane: number): void {
-    const topOffset = 70;
-    const y = topOffset + lane * this.laneHeight + this.laneHeight / 2 + (Math.random() - 0.5) * 10;
+    const y = this.topOffset + lane * this.laneHeight + this.laneHeight / 2 + (Math.random() - 0.5) * 14;
     const x = side === 'player' ? this.leftX : this.rightX;
-    const container = this.add.container(x, y).setDepth(7);
-    const body = this.add.rectangle(0, 0, 12, 16, UNIT_COLORS[type]).setStrokeStyle(2, 0x04141a);
-    const head = this.add.circle(0, -10, 4, UNIT_COLORS[type]).setStrokeStyle(1, 0x04141a);
-    container.add([body, head]);
-    if (side === 'enemy') {
-      container.setScale(-1, 1);
+    const group = this.add.container(x, y).setDepth(7);
+    const body = this.add.image(0, 0, UNIT_TEX[type]).setOrigin(0.5, 0.7);
+    if ((side === 'enemy' && type !== 'cannon') || (side === 'enemy' && type === 'cannon')) {
+      body.setFlipX(true);
     }
+    if (side === 'player' && type === 'cannon') body.setFlipX(false);
+    const hpBar = this.add.graphics();
+    group.add([body, hpBar]);
     const stat = UNIT_STATS[type];
     this.units.push({
-      rect: container,
-      side,
-      type,
-      hp: stat.hp,
-      speed: stat.speed,
-      lane,
-      cooldown: 0,
+      group, body, hpBar, side, type,
+      hp: stat.hp, hpMax: stat.hp,
+      speed: stat.speed, lane, cooldown: 0, fireT: 0,
     });
   }
 
@@ -304,13 +299,12 @@ export class LandBattleScene extends Phaser.Scene {
   update(_t: number, dt: number): void {
     if (this.ended) return;
     this.elapsed += dt;
-
     this.aiSpawn(dt);
     this.stepUnits(dt);
-    this.resolveCombat(dt);
-    this.resolveGates(dt);
+    this.resolveAttacks(dt);
     this.cleanup();
     for (const g of this.gates) this.drawGateBar(g);
+    this.refreshLabels();
     this.checkEnd();
   }
 
@@ -318,84 +312,150 @@ export class LandBattleScene extends Phaser.Scene {
     for (let lane = 0; lane < 3; lane++) {
       this.enemyTimers[lane]! -= dt;
       if (this.enemyTimers[lane]! <= 0 && this.enemyPool > 0) {
-        const choice: UnitType[] = ['buccaneer', 'soldier', 'cavalry'];
-        const type = choice[Math.floor(Math.random() * choice.length)]!;
+        const r = Math.random();
+        const type: UnitType = r < 0.45 ? 'soldier' : r < 0.75 ? 'buccaneer' : r < 0.9 ? 'cavalry' : 'cannon';
         const cost = UNIT_STATS[type].cost;
         if (this.enemyPool >= cost) {
           this.enemyPool -= cost;
           this.spawnUnit('enemy', type, lane);
-          this.refreshLabels();
         }
-        this.enemyTimers[lane] = 3000 + Math.random() * 2500;
+        this.enemyTimers[lane] = 2400 + Math.random() * 2200;
       }
     }
   }
 
   private stepUnits(dt: number): void {
     for (const u of this.units) {
-      if (u.cooldown > 0) {
-        u.cooldown -= dt;
+      if (u.cooldown > 0) u.cooldown -= dt;
+      const stat = UNIT_STATS[u.type];
+      // Keressen célt: ellenfél ugyanazon lane-en, vagy azon lane kapuja
+      const target = this.findClosestEnemy(u, stat.range);
+      const targetGate = this.gates.find((g) => g.side !== u.side && g.lane === u.lane && g.hp > 0);
+      const targetGateDist = targetGate ? Math.abs(targetGate.x - u.group.x) : Infinity;
+      // Ha közelharci és van célpont közel — álljon meg
+      if (target && Math.abs(target.group.x - u.group.x) < stat.range && stat.range < 50) {
+        // állj és üss
+      } else if (targetGate && targetGateDist < stat.range && stat.range < 50) {
+        // áll a kapunál
+      } else if (target && stat.range > 80) {
+        // tüzér — megáll a hatótávolságon belül
+        if (Math.abs(target.group.x - u.group.x) > stat.range * 0.85) {
+          u.group.x += (u.side === 'player' ? 1 : -1) * stat.speed * dt;
+        }
+      } else if (targetGate && stat.range > 80 && targetGateDist > stat.range * 0.85) {
+        u.group.x += (u.side === 'player' ? 1 : -1) * stat.speed * dt;
+      } else if (!target) {
+        u.group.x += (u.side === 'player' ? 1 : -1) * stat.speed * dt;
+      }
+      // Apró bólogatás
+      u.body.setY(Math.sin((this.elapsed + u.group.x * 13) * 0.005) * 1);
+      this.drawUnitBar(u);
+    }
+  }
+
+  private findClosestEnemy(u: Unit, range: number): Unit | null {
+    let best: Unit | null = null;
+    let bestDist = range;
+    for (const o of this.units) {
+      if (o.side === u.side || o.lane !== u.lane) continue;
+      const d = Math.abs(o.group.x - u.group.x);
+      if (d < bestDist) {
+        best = o;
+        bestDist = d;
+      }
+    }
+    return best;
+  }
+
+  private drawUnitBar(u: Unit): void {
+    u.hpBar.clear();
+    const w = 14;
+    const x = -w / 2;
+    const y = -22;
+    u.hpBar.fillStyle(0x04141a, 0.9);
+    u.hpBar.fillRect(x - 1, y - 1, w + 2, 3);
+    u.hpBar.fillStyle(u.side === 'player' ? 0xe0b24f : 0xc0392b, 1);
+    u.hpBar.fillRect(x, y, (u.hp / u.hpMax) * w, 1);
+  }
+
+  private resolveAttacks(dt: number): void {
+    for (const u of this.units) {
+      if (u.cooldown > 0) continue;
+      const stat = UNIT_STATS[u.type];
+      const target = this.findClosestEnemy(u, stat.range);
+      if (target) {
+        // Sebzés
+        target.hp -= stat.damage;
+        u.cooldown = stat.reload;
+        if (stat.range > 80) {
+          // Lövésvonal animáció
+          this.fireProjectile(u, target, stat.damage);
+        } else {
+          Particles.sparks(this, target.group.x, target.group.y - 6, 5, 9);
+        }
+        if (u.side === 'player') vibrate('light');
         continue;
       }
-      const enemiesAhead = this.units.some(
-        (o) => o.side !== u.side && o.lane === u.lane && Math.abs(o.rect.x - u.rect.x) < 22,
-      );
-      if (!enemiesAhead) {
-        u.rect.x += (u.side === 'player' ? 1 : -1) * u.speed * dt;
-      }
-    }
-  }
-
-  private resolveCombat(dt: number): void {
-    for (const a of this.units) {
-      for (const b of this.units) {
-        if (a === b || a.side === b.side || a.lane !== b.lane) continue;
-        const d = Math.abs(a.rect.x - b.rect.x);
-        if (d < 22) {
-          const rps = this.rps(a.type, b.type);
-          const aDmg = 0.006 * dt * (rps === 'win' ? 2 : rps === 'tie' ? 1 : 0.5);
-          const bDmg = 0.006 * dt * (rps === 'lose' ? 2 : rps === 'tie' ? 1 : 0.5);
-          a.hp -= bDmg;
-          b.hp -= aDmg;
-          a.cooldown = 200;
-          b.cooldown = 200;
+      // Kapu támadás
+      const gate = this.gates.find((g) => g.side !== u.side && g.lane === u.lane && g.hp > 0);
+      if (gate && Math.abs(gate.x - u.group.x) < stat.range + 12) {
+        gate.hp -= stat.damage * 0.5;
+        u.cooldown = stat.reload;
+        if (stat.range > 80) {
+          this.fireProjectileToPoint(u, gate.x, gate.y, stat.damage);
+        } else {
+          Particles.sparks(this, gate.x, gate.y, 4, 9);
         }
+        u.hp -= 0.6;
       }
+      void dt;
     }
   }
 
-  private resolveGates(dt: number): void {
-    for (const u of this.units) {
-      const targetSide: Side = u.side === 'player' ? 'enemy' : 'player';
-      const gate = this.gates.find((g) => g.side === targetSide && g.lane === u.lane);
-      if (!gate) continue;
-      const d = Math.abs(gate.x - u.rect.x);
-      if (d < 14) {
-        gate.hp -= 0.02 * dt;
-        u.hp -= 0.01 * dt;
-        if (u.side === 'player') vibrate('light');
-      }
-    }
+  private fireProjectile(u: Unit, target: Unit, _damage: number): void {
+    Audio.cannon();
+    const tex = u.type === 'cannon' ? 'cannonball-round' : 'cannonball-grape';
+    const ball = this.add.image(u.group.x, u.group.y - 4, tex).setDepth(10);
+    Particles.flash(this, u.group.x + (u.side === 'player' ? 14 : -14), u.group.y - 6);
+    Particles.smoke(this, u.group.x, u.group.y - 6, { count: 3 });
+    this.tweens.add({
+      targets: ball,
+      x: target.group.x, y: target.group.y - 4,
+      duration: 360, ease: 'Quad.easeOut',
+      onComplete: () => {
+        ball.destroy();
+        Particles.explosion(this, target.group.x, target.group.y - 4, 12);
+      },
+    });
+  }
+
+  private fireProjectileToPoint(u: Unit, tx: number, ty: number, _damage: number): void {
+    Audio.cannon();
+    const tex = u.type === 'cannon' ? 'cannonball-round' : 'cannonball-grape';
+    const ball = this.add.image(u.group.x, u.group.y - 4, tex).setDepth(10);
+    Particles.flash(this, u.group.x + (u.side === 'player' ? 14 : -14), u.group.y - 6);
+    this.tweens.add({
+      targets: ball,
+      x: tx, y: ty,
+      duration: 380, ease: 'Quad.easeOut',
+      onComplete: () => {
+        ball.destroy();
+        Particles.explosion(this, tx, ty, 12);
+      },
+    });
   }
 
   private cleanup(): void {
     const survivors: Unit[] = [];
     for (const u of this.units) {
       if (u.hp <= 0) {
-        u.rect.destroy();
+        Particles.sparks(this, u.group.x, u.group.y, 4, 9);
+        u.group.destroy();
       } else {
         survivors.push(u);
       }
     }
     this.units = survivors;
-  }
-
-  private rps(a: UnitType, b: UnitType): 'win' | 'lose' | 'tie' {
-    if (a === b) return 'tie';
-    if ((a === 'buccaneer' && b === 'cavalry') || (a === 'cavalry' && b === 'soldier') || (a === 'soldier' && b === 'buccaneer')) {
-      return 'win';
-    }
-    return 'lose';
   }
 
   private checkEnd(): void {
@@ -406,15 +466,15 @@ export class LandBattleScene extends Phaser.Scene {
 
     if (enemyGatesDown) return this.finish('victory');
     if (playerGatesDown) return this.finish('defeat');
-    if (this.elapsed > MATCH_MAX) {
+    if (this.elapsed > MATCH_MAX_MS) {
       const enemyGateSum = this.gates.filter((g) => g.side === 'enemy').reduce((s, g) => s + g.hp, 0);
       const playerGateSum = this.gates.filter((g) => g.side === 'player').reduce((s, g) => s + g.hp, 0);
       return this.finish(enemyGateSum < playerGateSum ? 'victory' : 'defeat');
     }
     if (this.playerPool <= 0 && playerFieldEmpty && this.enemyPool > 0) return this.finish('defeat');
-    if (this.enemyPool <= 0 && enemyFieldEmpty && this.playerPool > 0) {
-      // Ha nincs több védő, a megmaradt erőkkel lassan beletörjük a kapukat — gyorsítjuk a győzelmet
-      for (const g of this.gates.filter((gg) => gg.side === 'enemy')) g.hp -= 0.05 * 16;
+    if (this.enemyPool <= 0 && enemyFieldEmpty) {
+      // Maradék erőkkel zárás — gyorsított kapu-rombolás
+      for (const g of this.gates.filter((gg) => gg.side === 'enemy')) g.hp -= 0.06 * 16;
     }
   }
 
@@ -423,7 +483,7 @@ export class LandBattleScene extends Phaser.Scene {
     this.ended = true;
     const g = useGame.getState();
     if (outcome === 'victory') {
-      const loot = 600 + Math.floor(Math.random() * 800);
+      const loot = 700 + Math.floor(Math.random() * 900);
       g.addGold(loot);
       g.unlockAchievement('city-conqueror');
       g.adjustMorale(+15);
@@ -432,12 +492,14 @@ export class LandBattleScene extends Phaser.Scene {
         bus.emit('toast', { message: `Cél teljesült: ${title} (+${reward}g)`, kind: 'good' }),
       );
       this.flashEndBanner('DIADAL! +' + loot + ' arany', 0x2d5a2d);
+      Audio.success();
     } else {
       g.adjustMorale(-12);
       g.damageShip(0, 0, Math.min(8, g.ship.crew - 1));
       this.flashEndBanner('VISSZAVERTEK', 0x7a2e0e);
+      Audio.failure();
     }
-    this.time.delayedCall(1800, () => {
+    this.time.delayedCall(1900, () => {
       bus.emit('land:end', { outcome });
       this.scene.start('World');
     });
@@ -446,17 +508,13 @@ export class LandBattleScene extends Phaser.Scene {
   private flashEndBanner(text: string, color: number): void {
     const cx = this.scale.width / 2;
     const cy = this.scale.height / 2;
-    const bg = this.add.rectangle(cx, cy, this.scale.width, 80, color, 0.9).setDepth(50);
+    const bg = this.add.rectangle(cx, cy, this.scale.width, 90, color, 0.9).setDepth(50);
     const label = this.add
       .text(cx, cy, text, {
-        fontFamily: '"Press Start 2P"',
-        fontSize: '16px',
-        color: '#fbf5e3',
-        stroke: '#04141a',
-        strokeThickness: 4,
+        fontFamily: '"Press Start 2P"', fontSize: '18px', color: '#fbf5e3',
+        stroke: '#04141a', strokeThickness: 5,
       })
-      .setOrigin(0.5)
-      .setDepth(51);
-    this.tweens.add({ targets: [bg, label], alpha: { from: 0, to: 1 }, duration: 250 });
+      .setOrigin(0.5).setDepth(51);
+    this.tweens.add({ targets: [bg, label], alpha: { from: 0, to: 1 }, duration: 280 });
   }
 }

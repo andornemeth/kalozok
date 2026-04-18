@@ -1,16 +1,17 @@
 import Phaser from 'phaser';
+import type { ShipSilhouette } from '@/game/data/ships';
 
-export type ShipKind = 'ship-player' | 'ship-enemy' | 'ship-navy' | 'ship-merchant';
+export type ShipTone = 'player' | 'enemy' | 'navy' | 'merchant';
 
 export interface ShipGraphicOptions {
-  kind: ShipKind;
+  tone: ShipTone;
+  silhouette: ShipSilhouette;
   scale?: number;
 }
 
 /**
- * Oldalnézeti hajó — egyetlen részletes sprite. A hajó NEM forog (C64 Pirates!-stílus),
- * csak horizontálisan tükröződik menetirány szerint. Gyengéd bobbing (bólogatás) anim
- * érzékelteti, hogy a vízen van.
+ * Oldalnézeti hajó — egyetlen részletes sprite. A hajó NEM forog (Pirates!-stílus),
+ * csak horizontálisan tükröződik menetirány szerint. Gyengéd bobbing animáció.
  */
 export class ShipGraphic {
   readonly container: Phaser.GameObjects.Container;
@@ -20,8 +21,9 @@ export class ShipGraphic {
 
   constructor(scene: Phaser.Scene, x: number, y: number, opts: ShipGraphicOptions) {
     const scale = opts.scale ?? 1;
+    const key = `ship-${opts.tone}-${opts.silhouette}`;
     this.container = scene.add.container(x, y);
-    this.body = scene.add.image(0, 0, opts.kind).setOrigin(0.5, 0.7);
+    this.body = scene.add.image(0, 0, key).setOrigin(0.5, 0.7);
     this.container.add([this.body]);
     this.container.setScale(scale);
     this.bobT = Math.random() * 1000;
@@ -41,16 +43,14 @@ export class ShipGraphic {
 
   /**
    * @param heading radiánban, hajó haladási iránya
-   * @param _windDir abszolút szélirány (sail-animációra használható a jövőben)
+   * @param _windDir abszolút szélirány (jövőbeli sail-animációra)
    * @param dt frame delta ms-ben a bólogatáshoz
    */
   update(heading: number, _windDir: number, dt = 16): void {
     this.bobT += dt;
-    // Bólogatás: kis y-eltolás és rotáció
     const bob = Math.sin(this.bobT * 0.003) * 1.5;
     this.body.setY(bob);
     this.body.setRotation(Math.sin(this.bobT * 0.002) * 0.03);
-    // Irányváltás — ha haladási irány jobbra (cos>0) -> facing R, balra -> L
     const cosH = Math.cos(heading);
     const wantFacing = cosH >= 0 ? 'R' : 'L';
     if (wantFacing !== this.facing) {
@@ -69,6 +69,10 @@ export class ShipGraphic {
 
   clearTint(): void {
     this.body.clearTint();
+  }
+
+  setAlpha(a: number): void {
+    this.body.setAlpha(a);
   }
 
   destroy(): void {
