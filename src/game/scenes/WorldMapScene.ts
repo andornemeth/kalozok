@@ -121,6 +121,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.drawLandMasses();
     this.spawnWaveCrests();
     this.spawnCloudShadows();
+    this.spawnFog();
     this.spawnPorts();
     this.spawnPlayer();
     this.spawnInitialEnemies();
@@ -332,9 +333,12 @@ export class WorldMapScene extends Phaser.Scene {
         const px = isl.cx + Math.cos(angle) * isl.rx * r * (0.7 + Math.random() * 0.3);
         const py = isl.cy + Math.sin(angle) * isl.ry * r * (0.7 + Math.random() * 0.3);
         if (this.isLand(px, py)) {
-          // Véletlenszerű fa-típus
           const roll = Math.random();
-          const tex = roll < 0.5 ? 'palm' : roll < 0.8 ? 'palm-large' : 'willow';
+          const tex =
+            roll < 0.35 ? 'palm' :
+            roll < 0.55 ? 'palm-large' :
+            roll < 0.75 ? 'willow' :
+            'akacfa';
           this.add.image(px, py, tex).setDepth(3);
         }
       }
@@ -346,39 +350,87 @@ export class WorldMapScene extends Phaser.Scene {
         const rr = 0.98 + Math.random() * 0.08;
         const rx = isl.cx + Math.cos(a) * isl.rx * rr;
         const ry = isl.cy + Math.sin(a) * isl.ry * rr;
-        // Reed a part mentén — akár vízen (sekély) akár szélső part
         this.add.image(rx, ry, 'reed-cluster').setDepth(2.3).setAlpha(0.85);
       }
 
-      // === Nagyobb szigeteken tanya / szélmalom / napraforgó-tábla ===
-      if (isl.rx > 60 && isl.ry > 25 && Math.random() < 0.55) {
-        const tx = isl.cx + (Math.random() - 0.5) * isl.rx * 0.6;
-        const ty = isl.cy + (Math.random() - 0.5) * isl.ry * 0.6;
+      // === Sok ikonikus tájelem a szigeteken ===
+      // Nagyobb szigeteken arányosan több, 40-80% eséllyel mindegyik.
+      const areaScore = (isl.rx * isl.ry) / 1000; // 0.5-7 között
+
+      // Gémeskút — nagyon magyar
+      const gemesCount = areaScore > 3 ? 2 : areaScore > 1.5 ? 1 : (Math.random() < 0.6 ? 1 : 0);
+      for (let i = 0; i < gemesCount; i++) {
+        const gx = isl.cx + (Math.random() - 0.5) * isl.rx * 0.7;
+        const gy = isl.cy + (Math.random() - 0.5) * isl.ry * 0.7;
+        if (this.isLand(gx, gy)) this.add.image(gx, gy, 'gemeskut').setDepth(3.3);
+      }
+
+      // Szénakazal — több is
+      const hayCount = areaScore > 2 ? 2 + Math.floor(Math.random() * 2) : 1;
+      for (let i = 0; i < hayCount; i++) {
+        const hx = isl.cx + (Math.random() - 0.5) * isl.rx * 0.8;
+        const hy = isl.cy + (Math.random() - 0.5) * isl.ry * 0.8;
+        if (this.isLand(hx, hy)) this.add.image(hx, hy, 'szenakazal').setDepth(3.1);
+      }
+
+      // Tanya + hozzá gólyafészek kémény
+      if (isl.rx > 45 && Math.random() < 0.6) {
+        const tx = isl.cx + (Math.random() - 0.5) * isl.rx * 0.5;
+        const ty = isl.cy + (Math.random() - 0.5) * isl.ry * 0.5;
         if (this.isLand(tx, ty)) {
-          const roll = Math.random();
-          const tex = roll < 0.5 ? 'tanya-hut' : roll < 0.8 ? 'szelmalom' : 'sunflower-field';
-          this.add.image(tx, ty, tex).setDepth(3.2);
+          this.add.image(tx, ty, 'tanya-hut').setDepth(3.2);
+          // Gólyafészek a tanya kéményén 70%
+          if (Math.random() < 0.7) {
+            this.add.image(tx + 4, ty - 10, 'golyafeszek').setDepth(3.4);
+          }
         }
       }
 
-      // === Hegy / dombsziluett (vajdasági hátság) ===
+      // Szélmalom — dombos vagy nagyobb szigeteken
+      if (isl.rx > 60 && Math.random() < 0.5) {
+        const sx = isl.cx + (Math.random() - 0.5) * isl.rx * 0.7;
+        const sy = isl.cy + (Math.random() - 0.5) * isl.ry * 0.6;
+        if (this.isLand(sx, sy)) this.add.image(sx, sy, 'szelmalom').setDepth(3.2);
+      }
+
+      // Napraforgó- vagy kukorica-tábla
+      if (Math.random() < 0.5) {
+        const fx = isl.cx + (Math.random() - 0.5) * isl.rx * 0.75;
+        const fy = isl.cy + (Math.random() - 0.5) * isl.ry * 0.75;
+        if (this.isLand(fx, fy)) {
+          this.add.image(fx, fy, Math.random() < 0.5 ? 'sunflower-field' : 'kukoricas').setDepth(3.05);
+        }
+      }
+
+      // Birkanyáj — legelőt szimbolizál
+      if (Math.random() < 0.4) {
+        const bx = isl.cx + (Math.random() - 0.5) * isl.rx * 0.75;
+        const by = isl.cy + (Math.random() - 0.5) * isl.ry * 0.75;
+        if (this.isLand(bx, by)) this.add.image(bx, by, 'birkanyaj').setDepth(3.15);
+      }
+
+      // Fakereszt — útszéli, kisebb szigeten is
+      if (Math.random() < 0.35) {
+        const kx = isl.cx + (Math.random() - 0.5) * isl.rx * 0.85;
+        const ky = isl.cy + (Math.random() - 0.5) * isl.ry * 0.85;
+        if (this.isLand(kx, ky)) this.add.image(kx, ky, 'fakereszt').setDepth(3.1);
+      }
+
+      // === Hegy / dombsziluett ===
       if (isl.hilly && isl.rx > 60) {
         const hillCount = Math.max(1, Math.floor(isl.rx / 60));
         for (let i = 0; i < hillCount; i++) {
           const dx = (i - (hillCount - 1) / 2) * 28;
           this.add.image(isl.cx + dx, isl.cy - 4, i % 2 === 0 ? 'hill-1' : 'hill-2').setDepth(3);
         }
-        // Hilly szigetek esetén szőlősor is
-        if (Math.random() < 0.4) {
+        if (Math.random() < 0.5) {
           const vx = isl.cx + (Math.random() - 0.5) * isl.rx * 0.5;
           const vy = isl.cy + (Math.random() - 0.5) * isl.ry * 0.5;
-          if (this.isLand(vx, vy)) {
-            this.add.image(vx, vy, 'vineyard').setDepth(3.1);
-          }
+          if (this.isLand(vx, vy)) this.add.image(vx, vy, 'vineyard').setDepth(3.1);
         }
       }
 
-      // === Sziklák part mentén (kisebb sűrűséggel) ===
+      // === Sziklák part mentén ===
       for (let i = 0; i < 2; i++) {
         const a = Math.random() * Math.PI * 2;
         const rx = isl.cx + Math.cos(a) * isl.rx * 0.95;
@@ -396,6 +448,28 @@ export class WorldMapScene extends Phaser.Scene {
       s.setScale(0.8 + Math.random() * 0.8);
       s.setData('speed', 0.012 + Math.random() * 0.012);
       this.cloudShadows.push(s);
+    }
+  }
+
+  private fogPatches: Phaser.GameObjects.Image[] = [];
+  private spawnFog(): void {
+    // 12 köd-folt a vízen — lassan sodródik a széllel, alpha lüktet
+    for (let i = 0; i < 12; i++) {
+      const x = Math.random() * WORLD_W;
+      const y = Math.random() * WORLD_H;
+      const f = this.add.image(x, y, 'fog-patch').setDepth(6).setAlpha(0);
+      f.setScale(0.6 + Math.random() * 0.9);
+      f.setData('driftSpeed', 0.008 + Math.random() * 0.012);
+      // Lüktető átlátszóság — köd finoman sűrűsödik/ritkul
+      const base = 0.45 + Math.random() * 0.25;
+      this.tweens.add({
+        targets: f,
+        alpha: { from: base * 0.35, to: base },
+        duration: 4000 + Math.random() * 3000,
+        yoyo: true,
+        repeat: -1,
+      });
+      this.fogPatches.push(f);
     }
   }
 
@@ -417,6 +491,11 @@ export class WorldMapScene extends Phaser.Scene {
       if (p.size === 'large' || p.size === 'capital') {
         const fortIcon = this.add.image(-14, -4, 'fort-icon').setOrigin(0.5, 1);
         items.unshift(fortIcon);
+      }
+      // Templomtorony a nagyobb keresztény portokhoz (nem oszmán)
+      if ((p.size === 'capital' || p.size === 'large') && p.nation !== 'oszman' && p.nation !== 'crnagorac') {
+        const tower = this.add.image(14, -4, 'templomtorony').setOrigin(0.5, 1);
+        items.unshift(tower);
       }
       if (p.homePort) {
         const sun = this.add.image(0, -30, 'sunflower-emblem').setOrigin(0.5, 0.5);
@@ -789,6 +868,7 @@ export class WorldMapScene extends Phaser.Scene {
       this.spawnEnemy();
     }
     this.updateCloudShadows(dt);
+    this.updateFog(dt);
     this.updateDayNight();
     this.updateCompass();
     if (this.hintText && useGame.getState().flags.tutorialMove && !this.target) {
@@ -809,6 +889,20 @@ export class WorldMapScene extends Phaser.Scene {
       if (c.x < -80) c.x = WORLD_W + 80;
       if (c.y > WORLD_H + 60) c.y = -60;
       if (c.y < -60) c.y = WORLD_H + 60;
+    }
+  }
+
+  private updateFog(dt: number): void {
+    // Köd a szél irányával megegyezően sodródik, kicsit lassabban mint a felhőárnyékok
+    const dir = this.wind.state.dir + Math.PI;
+    for (const f of this.fogPatches) {
+      const sp = f.getData('driftSpeed') as number;
+      f.x += Math.cos(dir) * sp * dt;
+      f.y += Math.sin(dir) * sp * dt;
+      if (f.x > WORLD_W + 120) f.x = -120;
+      if (f.x < -120) f.x = WORLD_W + 120;
+      if (f.y > WORLD_H + 100) f.y = -100;
+      if (f.y < -100) f.y = WORLD_H + 100;
     }
   }
 

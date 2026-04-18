@@ -98,6 +98,16 @@ export class PreloadScene extends Phaser.Scene {
     this.makeSzelmalom('szelmalom');      // szélmalom
     this.makeSunflowerField('sunflower-field'); // napraforgó-tábla
     this.makeVineyard('vineyard');        // szőlősor
+    // Új ikonikus elemek
+    this.makeGemesKut('gemeskut');        // gémeskút
+    this.makeTemplomTorony('templomtorony'); // templomtorony
+    this.makeSzenakazal('szenakazal');    // szénakazal
+    this.makeGolyafeszek('golyafeszek');  // gólyafészek kéményen
+    this.makeFakereszt('fakereszt');      // útszéli fakereszt
+    this.makeAkacfa('akacfa');            // akácfa
+    this.makeKukoricas('kukoricas');      // kukoricás
+    this.makeBirkanyaj('birkanyaj');      // birkanyáj
+    this.makeFogPatch('fog-patch');       // köd-folt
     this.makeCloudShadow('cloud-shadow');
     this.makeHillSilhouette('hill-1', 0x4a6b3a);
     this.makeHillSilhouette('hill-2', 0x6b8f3d);
@@ -989,17 +999,246 @@ export class PreloadScene extends Phaser.Scene {
     const g = this.add.graphics();
     g.fillStyle(0x5a4a3a, 1);
     g.fillEllipse(10, 7, 20, 13);
-    // Szőlősorok (zöld vonalkák)
     g.lineStyle(1, 0x4a7a3a, 0.95);
     for (let i = 0; i < 5; i++) {
       const y = 2 + i * 2.2;
       g.lineBetween(2, y, 18, y);
     }
-    // Lila pötty (szőlőfürt érés)
     g.fillStyle(0x7a3e8a, 1);
     g.fillCircle(5, 5, 0.8);
     g.fillCircle(13, 7, 0.8);
     g.fillCircle(9, 11, 0.8);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Gémeskút — magyar ikonikus tájelem. L-alakú kúterő + vödör. */
+  private makeGemesKut(key: string): void {
+    const w = 18, h = 24;
+    const g = this.add.graphics();
+    // Árnyék
+    g.fillStyle(0x04141a, 0.3);
+    g.fillEllipse(7, 22, 12, 3);
+    // Függőleges oszlop
+    g.fillStyle(0x5a3a1a, 1);
+    g.fillRect(4, 8, 2, 14);
+    // Ferde gém (átlós kar)
+    g.lineStyle(2, 0x5a3a1a, 1);
+    g.lineBetween(5, 8, 16, 2);
+    // Ellensúly (hátsó vége)
+    g.fillStyle(0x3a2010, 1);
+    g.fillCircle(16, 2, 2);
+    // Lógó zsinór
+    g.lineStyle(1, 0x2a1a10, 0.8);
+    g.lineBetween(7, 5, 7, 14);
+    // Vödör
+    g.fillStyle(0x8a6a3a, 1);
+    g.fillRect(5, 14, 4, 3);
+    g.lineStyle(1, 0x3a2010, 1);
+    g.strokeRect(5, 14, 4, 3);
+    // Kávalap (kútkerület)
+    g.fillStyle(0x6b6256, 1);
+    g.fillRect(2, 20, 8, 2);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Templomtorony — fehér, piros tető, kereszt. */
+  private makeTemplomTorony(key: string): void {
+    const w = 14, h = 30;
+    const g = this.add.graphics();
+    // Árnyék
+    g.fillStyle(0x04141a, 0.35);
+    g.fillEllipse(7, 29, 12, 2);
+    // Torony teste
+    g.fillStyle(0xfbf5e3, 1);
+    g.fillRect(4, 10, 6, 20);
+    // Torony kő textúra
+    g.fillStyle(0xc9b894, 0.4);
+    for (let yy = 11; yy < 30; yy += 4) g.fillRect(5, yy, 4, 1);
+    // Ablak
+    g.fillStyle(0x3a5a8a, 1);
+    g.fillRect(6, 14, 2, 3);
+    // Gúla-tető
+    g.fillStyle(0x8a2e1a, 1);
+    g.fillTriangle(2, 10, 7, 2, 12, 10);
+    // Kereszt a csúcson
+    g.fillStyle(0x3a2010, 1);
+    g.fillRect(6.5, 0, 1, 4);
+    g.fillRect(5, 1, 4, 1);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Szénakazal — félgömb alakú sárga halom. */
+  private makeSzenakazal(key: string): void {
+    const w = 16, h = 14;
+    const g = this.add.graphics();
+    // Árnyék
+    g.fillStyle(0x04141a, 0.3);
+    g.fillEllipse(8, 13, 14, 2);
+    // Alap-réteg
+    g.fillStyle(0xc9a86a, 1);
+    g.fillEllipse(8, 10, 14, 8);
+    // Kupola
+    g.fillStyle(0xe0b24f, 1);
+    g.fillCircle(8, 7, 5);
+    // Szalmaszálak
+    g.lineStyle(1, 0x8a6a3a, 0.7);
+    for (let i = 0; i < 6; i++) {
+      const x = 3 + i * 2;
+      g.lineBetween(x, 11, x + (i % 2 ? 1 : -1), 7);
+    }
+    // Felső szalmacsúcs
+    g.fillStyle(0x6b4a2a, 1);
+    g.fillCircle(8, 3, 1.5);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Gólyafészek kéményen — kis fészek az ágak közül. */
+  private makeGolyafeszek(key: string): void {
+    const w = 14, h = 18;
+    const g = this.add.graphics();
+    // Kémény
+    g.fillStyle(0x8a6a5a, 1);
+    g.fillRect(5, 6, 4, 12);
+    // Kéménytégla-csíkok
+    g.fillStyle(0x6b4a3a, 0.6);
+    g.fillRect(5, 10, 4, 1);
+    g.fillRect(5, 14, 4, 1);
+    // Fészek alap (ágak)
+    g.fillStyle(0x5a3a1a, 1);
+    g.fillEllipse(7, 5, 12, 4);
+    // Fészek lyuk (középen sötétebb)
+    g.fillStyle(0x3a2010, 1);
+    g.fillEllipse(7, 4, 8, 2);
+    // Gólya (fehér test, fekete szárny, hosszú piros csőr)
+    g.fillStyle(0xfbf5e3, 1);
+    g.fillEllipse(7, 2, 5, 3);
+    g.fillStyle(0x1c1c1c, 1);
+    g.fillRect(6, 1, 2, 1);
+    // Csőr
+    g.fillStyle(0xc0392b, 1);
+    g.fillTriangle(9, 2, 12, 1, 9, 3);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Fakereszt — útszéli kereszt. */
+  private makeFakereszt(key: string): void {
+    const w = 10, h = 16;
+    const g = this.add.graphics();
+    // Árnyék
+    g.fillStyle(0x04141a, 0.3);
+    g.fillEllipse(5, 15, 8, 2);
+    // Függőleges gerenda
+    g.fillStyle(0x6b4a2a, 1);
+    g.fillRect(4, 2, 2, 14);
+    // Vízszintes kar
+    g.fillRect(1, 6, 8, 2);
+    // Fa textúra
+    g.lineStyle(1, 0x3a2010, 0.5);
+    g.lineBetween(4, 3, 4, 15);
+    // Koszorú-pötty (virág)
+    g.fillStyle(0xc0392b, 1);
+    g.fillCircle(5, 9, 0.8);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Akácfa — fehéres törzs, kerek zöld korona, sárga virágokkal. */
+  private makeAkacfa(key: string): void {
+    const w = 14, h = 16;
+    const g = this.add.graphics();
+    // Törzs
+    g.fillStyle(0x9a8a6a, 1);
+    g.fillRect(6, 10, 2, 6);
+    // Lomb alsó
+    g.fillStyle(0x4a8b3d, 1);
+    g.fillCircle(7, 7, 6);
+    // Világos kiemelés
+    g.fillStyle(0x6bae4a, 1);
+    g.fillCircle(5, 5, 3);
+    // Sárga virág-fürtök
+    g.fillStyle(0xe0d24f, 1);
+    g.fillCircle(4, 8, 1);
+    g.fillCircle(10, 6, 1);
+    g.fillCircle(8, 9, 0.8);
+    g.fillCircle(3, 5, 0.8);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Kukoricás — függőleges sárga-zöld csíkok. */
+  private makeKukoricas(key: string): void {
+    const w = 18, h = 14;
+    const g = this.add.graphics();
+    // Alap
+    g.fillStyle(0x4a7a3a, 1);
+    g.fillEllipse(9, 8, 18, 12);
+    // Függőleges szálak
+    g.lineStyle(1, 0x7aa33d, 1);
+    for (let i = 0; i < 12; i++) {
+      const x = 1 + i * 1.4;
+      const tall = 6 + (i % 3);
+      g.lineBetween(x, 12, x, 12 - tall);
+    }
+    // Sárga csövek
+    g.fillStyle(0xe0b24f, 1);
+    g.fillCircle(4, 5, 0.7);
+    g.fillCircle(9, 6, 0.7);
+    g.fillCircle(14, 5, 0.7);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Birkanyáj — néhány fehér gömb. */
+  private makeBirkanyaj(key: string): void {
+    const w = 18, h = 10;
+    const g = this.add.graphics();
+    // Árnyékok
+    g.fillStyle(0x04141a, 0.3);
+    g.fillEllipse(4, 8, 4, 1);
+    g.fillEllipse(9, 8, 4, 1);
+    g.fillEllipse(14, 8, 4, 1);
+    // Birkák — fehér gömbök
+    g.fillStyle(0xfbf5e3, 1);
+    g.fillCircle(4, 6, 2.5);
+    g.fillCircle(9, 5, 3);
+    g.fillCircle(14, 6, 2.5);
+    // Fekete fej
+    g.fillStyle(0x1c1c1c, 1);
+    g.fillCircle(2, 6, 1.2);
+    g.fillCircle(7, 5, 1.3);
+    g.fillCircle(12, 6, 1.2);
+    // Lábak
+    g.lineStyle(1, 0x3a2010, 0.9);
+    g.lineBetween(4, 8, 4, 9);
+    g.lineBetween(9, 8, 9, 9);
+    g.lineBetween(14, 8, 14, 9);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Köd-folt — nagy halvány fehér folt, alpha-gradient. */
+  private makeFogPatch(key: string): void {
+    const w = 160;
+    const h = 100;
+    const g = this.add.graphics();
+    // Sok réteg halvány fehér ellipszis, enyhén eltolva — lágy, felhőszerű folt
+    const blobs: { x: number; y: number; rx: number; ry: number; a: number }[] = [
+      { x: 80, y: 50, rx: 70, ry: 40, a: 0.35 },
+      { x: 50, y: 40, rx: 40, ry: 26, a: 0.28 },
+      { x: 110, y: 60, rx: 42, ry: 28, a: 0.25 },
+      { x: 90, y: 30, rx: 36, ry: 22, a: 0.22 },
+      { x: 40, y: 60, rx: 34, ry: 22, a: 0.2 },
+      { x: 120, y: 40, rx: 32, ry: 20, a: 0.18 },
+    ];
+    for (const b of blobs) {
+      g.fillStyle(0xfbf5e3, b.a);
+      g.fillEllipse(b.x, b.y, b.rx * 2, b.ry * 2);
+    }
     g.generateTexture(key, w, h);
     g.destroy();
   }
