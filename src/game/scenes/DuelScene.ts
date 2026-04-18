@@ -19,6 +19,7 @@ interface Duelist {
   actionT: number;          // aktuális akció eltelt ms
   dodgeCooldown: number;    // hátralévő dodge cooldown (ms)
   stunT: number;            // stun hátralévő ms
+  counterPending: boolean;  // a következő swing 2× damage-et ad
   // AI-only
   aiDecisionT: number;      // hátralévő idő új döntésig
   aiPendingAttack: boolean; // épp telegrafál támadást
@@ -40,7 +41,6 @@ const ATTACK_RECOVERY = 160;          // ATTACK_DURATION után
 const DODGE_DURATION = 320;
 const DODGE_COOLDOWN = 800;
 const DODGE_BACKSTEP = 50;
-const PARRY_MOVE_MULT = 0.5;
 const PUSH_ON_HIT = 26;
 const PUSH_ON_PARRY = 36;
 const STUN_AFTER_HIT = 220;
@@ -52,15 +52,16 @@ export class DuelScene extends Phaser.Scene {
   private attackBtn!: Phaser.GameObjects.Container;
   private parryBtn!: Phaser.GameObjects.Container;
   private dodgeBtn!: Phaser.GameObjects.Container;
-  private parryHeld = false;
   private bgFar!: Phaser.GameObjects.Graphics;
   private deckLine!: Phaser.GameObjects.Graphics;
   private edgeMarkers!: Phaser.GameObjects.Graphics;
   private bannerTxt!: Phaser.GameObjects.Text;
+  private counterPrompt!: Phaser.GameObjects.Text;
   private arenaLeft = 100;
   private arenaRight = 1000;
   private ended = false;
   private defenderMode = false;
+  private counterWindow = 0;          // ms, ha > 0 akkor counter-ablak aktív
 
   constructor() {
     super('Duel');
@@ -68,10 +69,13 @@ export class DuelScene extends Phaser.Scene {
 
   init(data: { enemyCrew?: number; enemyKind?: string; defender?: boolean }): void {
     this.ended = false;
-    this.parryHeld = false;
     this.defenderMode = !!data.defender;
-    // AI nehézség: kisebb reakció-idő = nehezebb ellenfél
-    // (a nehézséget egyelőre fix 500 ms-re vesszük; később differenciálható)
+    this.counterWindow = 0;
+    // Scene reuse: reset minden referenciát + timeScale-t, hogy az új duel
+    // tiszta állapotból induljon
+    this.player = undefined as unknown as Duelist;
+    this.enemy = undefined as unknown as Duelist;
+    this.time.timeScale = 1;
     void data.enemyCrew;
     void data.enemyKind;
   }
@@ -174,13 +178,17 @@ export class DuelScene extends Phaser.Scene {
       fontFamily: '"Press Start 2P"', fontSize: '8px', color: '#fbf5e3',
       stroke: '#04141a', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(8);
-    const intentLabel = this.add.text(x, y - 116, '', {
-      fontFamily: '"Press Start 2P"', fontSize: '9px', color: '#ffd7c7',
-      stroke: '#04141a', strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(9);
+    // Nagy, látványos telegráf-címke — villog a támadás előtt, hogy az
+    // ellenfél stance-e tisztán látszódjon
+    const intentLabel = this.add.text(x, y - 118, '', {
+      fontFamily: '"Press Start 2P"', fontSize: '14px', color: '#ff8a3d',
+      stroke: '#04141a', strokeThickness: 4,
+      backgroundColor: 'rgba(4,20,26,0.6)', padding: { x: 4, y: 3 },
+    }).setOrigin(0.5).setDepth(12);
     const d: Duelist = {
       hp, hpMax: hp, posX: x, stance: 'middle', facing,
       state: 'idle', actionT: 0, dodgeCooldown: 0, stunT: 0,
+      counterPending: false,
       aiDecisionT: 500 + Math.random() * 500,
       aiPendingAttack: false, aiTelegraphT: 0, aiReactionTime,
       sprite, shadow, hpBar, stanceLabel, intentLabel,
@@ -224,7 +232,8 @@ export class DuelScene extends Phaser.Scene {
       return c;
     };
 
-    this.attackBtn = mkBtn('TÁMADÁS', 140, 88, 0x7a2e0e, '14px');
+    // Nagy TÁMADÁS gomb — a fő input
+    this.attackBtn = mkBtn('TÁMADÁS', 150, 98, 0x7a2e0e, '14px');
     this.attackBtn.on('pointerdown', () => {
       const bg = this.attackBtn.list[0] as Phaser.GameObjects.Rectangle;
       bg.setFillStyle(0x7a2e0e, 0.7);
@@ -239,24 +248,8 @@ export class DuelScene extends Phaser.Scene {
       bg.setFillStyle(0x7a2e0e, 0.92);
     });
 
-    this.parryBtn = mkBtn('HÁRÍTÁS', 108, 52, 0x145f65, '10px');
-    const parryPress = () => {
-      if (this.ended) return;
-      this.parryHeld = true;
-      const bg = this.parryBtn.list[0] as Phaser.GameObjects.Rectangle;
-      bg.setFillStyle(0x145f65, 0.6);
-    };
-    const parryRelease = () => {
-      this.parryHeld = false;
-      const bg = this.parryBtn.list[0] as Phaser.GameObjects.Rectangle;
-      bg.setFillStyle(0x145f65, 0.92);
-    };
-    this.parryBtn.on('pointerdown', parryPress);
-    this.parryBtn.on('pointerup', parryRelease);
-    this.parryBtn.on('pointerout', parryRelease);
-    this.parryBtn.on('pointerupoutside', parryRelease);
-
-    this.dodgeBtn = mkBtn('KITÉR', 108, 52, 0x4a4238, '10px');
+    // KITÉR — másodlagos, kisebb
+    this.dodgeBtn = mkBtn('KITÉR', 108, 58, 0x4a4238, '11px');
     this.dodgeBtn.on('pointerup', () => this.tryDodge());
     this.dodgeBtn.on('pointerdown', () => {
       const bg = this.dodgeBtn.list[0] as Phaser.GameObjects.Rectangle;
@@ -266,6 +259,17 @@ export class DuelScene extends Phaser.Scene {
       const bg = this.dodgeBtn.list[0] as Phaser.GameObjects.Rectangle;
       bg.setFillStyle(0x4a4238, 0.92);
     });
+
+    // HÁRÍTÁS helyett: auto-parry a joystick állásával
+    // Kezdetben nem hozunk létre parryBtn-t — a referencia csak a layout miatt maradt
+    this.parryBtn = mkBtn('', 0, 0, 0x000000, '8px');
+    this.parryBtn.setVisible(false);
+
+    // Counter-prompt — nagy, villogó
+    this.counterPrompt = this.add.text(0, 0, '', {
+      fontFamily: '"Press Start 2P"', fontSize: '20px', color: '#ff8a3d',
+      stroke: '#04141a', strokeThickness: 5,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(40).setVisible(false);
   }
 
   private setupInput(): void {
@@ -283,15 +287,13 @@ export class DuelScene extends Phaser.Scene {
     this.refreshDeck();
 
     this.bannerTxt?.setPosition(W / 2, 18);
+    this.counterPrompt?.setPosition(W / 2, H / 2 - 130);
 
     this.joystick?.reposition(120, H - 140);
 
     const rightX = W - 90;
-    this.attackBtn?.setPosition(rightX, H - 80);
-    this.parryBtn?.setPosition(rightX, H - 160);
-    this.dodgeBtn?.setPosition(rightX - 150, H - 80);
-
-    // HP bars és sprites a posX követésével frissülnek update-ben
+    this.attackBtn?.setPosition(rightX, H - 90);
+    this.dodgeBtn?.setPosition(rightX - 150, H - 60);
   }
 
   // --- Akciók --------------------------------------------------------
@@ -299,8 +301,15 @@ export class DuelScene extends Phaser.Scene {
   private tryAttack(): void {
     if (this.ended) return;
     if (!this.canAct(this.player)) return;
+    const isCounter = this.counterWindow > 0;
+    if (isCounter) {
+      this.player.counterPending = true;
+      this.counterWindow = 0;
+      this.counterPrompt.setVisible(false);
+      this.cameras.main.flash(120, 224, 178, 79);
+    }
     this.startAttack(this.player);
-    vibrate('light');
+    vibrate(isCounter ? 'medium' : 'light');
   }
 
   private tryDodge(): void {
@@ -370,34 +379,35 @@ export class DuelScene extends Phaser.Scene {
     const p = this.player;
     if (p.state === 'stunned' || p.state === 'dodging') return;
 
-    // Joystick y → stance
+    // Counter-window ticking
+    if (this.counterWindow > 0) {
+      this.counterWindow = Math.max(0, this.counterWindow - dt);
+      if (this.counterWindow === 0) this.counterPrompt.setVisible(false);
+    }
+
+    // Joystick y → stance, x → mozgás
     if (this.joystick.active) {
       const mag = this.joystick.magnitude;
       if (mag > 0.1) {
-        // y az sok rendszerben lefelé pozitív — ezt használjuk is
         const sin = Math.sin(this.joystick.angle);
         const newStance: Stance = sin < -0.35 ? 'high' : sin > 0.35 ? 'low' : 'middle';
         if (newStance !== p.stance) {
           p.stance = newStance;
           p.stanceLabel.setText(this.stanceLabelText(newStance));
         }
-        // x → move (advance / retreat)
         const cos = Math.cos(this.joystick.angle);
         if (Math.abs(cos) > 0.25 && p.state !== 'attacking') {
-          const moveMult = this.parryHeld ? PARRY_MOVE_MULT : 1.0;
           const dir = cos > 0 ? 1 : -1;
-          p.posX += dir * MOVE_SPEED * moveMult * mag * dt;
+          p.posX += dir * MOVE_SPEED * mag * dt;
           this.clampPosX(p);
         }
       }
     }
 
-    // Parry state
-    if (this.parryHeld && p.state === 'idle') {
-      p.state = 'parrying';
-    } else if (!this.parryHeld && p.state === 'parrying') {
-      p.state = 'idle';
-    }
+    // Auto-parry: amíg idle, a jelenlegi stance aktív parry-ként funkcionál,
+    // ha az ellenfél épp támad és a stance egyezik. Ezt a resolveSwing
+    // döntési logikája veszi észre.
+    void dt;
   }
 
   private tickDuelist(d: Duelist, dt: number): void {
@@ -431,8 +441,8 @@ export class DuelScene extends Phaser.Scene {
   private resolveSwing(attacker: Duelist): void {
     const target = attacker === this.player ? this.enemy : this.player;
     const dist = Math.abs(attacker.posX - target.posX);
-    if (dist > 110) {
-      // Nem ért el — csak fémes csengés, ha közelébe csapódott
+    if (dist > 115) {
+      // Nem ért el
       return;
     }
     // Dodge-ban sebezhetetlen
@@ -440,30 +450,41 @@ export class DuelScene extends Phaser.Scene {
       Particles.sparks(this, (attacker.posX + target.posX) / 2, attacker.sprite.y - 40, 6, 12);
       return;
     }
-    // Parry check
-    if (target.state === 'parrying') {
-      const stanceMatch = target.stance === attacker.stance;
-      if (stanceMatch) {
-        // Tökéletes parry: 0 damage, a támadó hátralép (visszanyomás)
-        attacker.posX -= attacker.facing * PUSH_ON_PARRY;
-        this.clampPosX(attacker);
-        Audio.swordClang();
-        Particles.sparks(this, (attacker.posX + target.posX) / 2, attacker.sprite.y - 40, 14, 20);
-        this.cameras.main.shake(140, 0.006);
-        vibrate('medium');
-        return;
-      } else {
-        // Részleges parry: 30% sebzés, kisebb push
-        const dmg = Math.max(2, Math.floor(this.damageFor(attacker) * 0.3));
-        this.applyDamage(target, dmg, attacker, false);
-        return;
+    // AUTO-PARRY: ha a célpont idle állapotban van (nem támad) és a stance-e
+    // megegyezik a támadóval → tökéletes parry. A célpont egy counter-ablakot
+    // kap: 600 ms-en belül ha tapol TÁMADÁST, bónusz damage-t kap.
+    if (target.state === 'idle' && target.stance === attacker.stance) {
+      // Tökéletes parry
+      attacker.posX -= attacker.facing * PUSH_ON_PARRY;
+      this.clampPosX(attacker);
+      attacker.state = 'stunned';
+      attacker.stunT = STUN_AFTER_HIT;
+      Audio.swordClang();
+      Particles.sparks(this, (attacker.posX + target.posX) / 2, attacker.sprite.y - 40, 16, 22);
+      this.cameras.main.shake(160, 0.008);
+      vibrate('medium');
+      // Counter-ablak csak a játékosnak
+      if (target === this.player) {
+        this.counterWindow = 600;
+        this.counterPrompt.setText('HÁRÍTOTTAD! COUNTER!').setVisible(true).setAlpha(1);
+        this.tweens.add({
+          targets: this.counterPrompt,
+          alpha: { from: 1, to: 0.4 }, yoyo: true, repeat: 2, duration: 150,
+        });
       }
+      return;
     }
 
     // Sima találat
     const stanceMatch = target.stance === attacker.stance;
-    const dmg = this.damageFor(attacker) + (stanceMatch ? 4 : 0);
-    const pushBonus = stanceMatch ? 1.2 : 1.0;
+    let dmg = this.damageFor(attacker) + (stanceMatch ? 4 : 0);
+    let pushBonus = stanceMatch ? 1.2 : 1.0;
+    if (attacker.counterPending) {
+      dmg = Math.round(dmg * 2);
+      pushBonus *= 1.4;
+      attacker.counterPending = false;
+      this.showBanner('COUNTER!', '#ff8a3d');
+    }
     this.applyDamage(target, dmg, attacker, true, pushBonus);
   }
 

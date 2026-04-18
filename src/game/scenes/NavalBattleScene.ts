@@ -41,6 +41,9 @@ interface CombatShip {
   aiSkill: number;
   nation: NationId;
   flag?: Phaser.GameObjects.Image;
+  telegraphT: number;       // >0 közben: „⚡ LŐ!" label + nem lő még
+  pendingFire?: { ammo: Ammo; side: Side };
+  telegraphLabel?: Phaser.GameObjects.Text;
 }
 
 // =========================================================================
@@ -297,6 +300,7 @@ export class NavalBattleScene extends Phaser.Scene {
       desiredHeading: heading,
       portReload: 0, starboardReload: 0, aiCooldown: 800,
       aiCommitUntil: 0, aiSkill, nation, flag,
+      telegraphT: 0,
       ...stats,
     };
   }
@@ -513,7 +517,14 @@ export class NavalBattleScene extends Phaser.Scene {
     const attacker = target === this.enemy ? this.player : this.enemy;
     const [lo, hi] = baseDamageRange(attacker, ammo);
     let dmg = Phaser.Math.Between(lo, hi);
+    // Alap damage +20% — pergőbb csatákhoz
+    dmg = Math.round(dmg * 1.2);
     if (raking) dmg = Math.round(dmg * 1.8);
+    // Kritikus találat: 10% esély, 2.5×, kamera-shake + banner
+    const isCrit = Math.random() < 0.1;
+    if (isCrit) {
+      dmg = Math.round(dmg * 2.5);
+    }
     let tone = 0xff8080;
     if (ammo === 'round') {
       target.hull = Math.max(0, target.hull - dmg);
@@ -524,9 +535,14 @@ export class NavalBattleScene extends Phaser.Scene {
       target.crew = Math.max(0, target.crew - dmg);
       tone = 0xffc070;
     }
-    target.ship.setTint(tone);
+    target.ship.setTint(isCrit ? 0xffffff : tone);
     this.time.delayedCall(110, () => target.ship.clearTint());
-    this.floatDamage(target.ship.x, target.ship.y - 40, dmg, ammo, raking);
+    this.floatDamage(target.ship.x, target.ship.y - 40, dmg, ammo, raking || isCrit);
+    if (isCrit) {
+      this.cameras.main.shake(220, 0.015);
+      this.showBanner('KRITIKUS!', '#ff3a3a');
+      Audio.boom();
+    }
     if (target === this.enemy && Math.random() < 0.18) {
       this.battleCry('naval.cryHit');
     }
@@ -726,6 +742,10 @@ export class NavalBattleScene extends Phaser.Scene {
     if (s.flag) {
       s.flag.setPosition(nx - 1, ny - 72);
     }
+    // Telegráf-címke kövesse a hajót
+    if (s.telegraphLabel && s.telegraphLabel.visible) {
+      s.telegraphLabel.setPosition(nx, ny - 58);
+    }
   }
 
   private aiUpdate(s: CombatShip, dt: number): void {
@@ -761,6 +781,30 @@ export class NavalBattleScene extends Phaser.Scene {
     this.advanceShip(s, dt);
     this.tickReload(s, dt);
 
+    // Telegráf-visszaszámláló: ha folyamatban van támadás-előrejelzés,
+    // ne indítson újat — csak engedje lefutni.
+    if (s.telegraphT > 0) {
+      s.telegraphT = Math.max(0, s.telegraphT - dt);
+      if (s.telegraphT === 0 && s.pendingFire) {
+        const { ammo, side } = s.pendingFire;
+        s.pendingFire = undefined;
+        if (s.telegraphLabel) s.telegraphLabel.setVisible(false);
+        // A telegráf végén még ellenőrizzük a broadside-ot és a reload-ot,
+        // mert közben a hajó mozoghatott/fordulhatott.
+        const b2 = relativeBroadside(s, target);
+        const readyT = side === 'port' ? s.portReload : s.starboardReload;
+        const dist2 = Phaser.Math.Distance.Between(s.ship.x, s.ship.y, target.ship.x, target.ship.y);
+        if (readyT <= 0 && b2 >= 0.35 && dist2 <= rangeFor(s, ammo)) {
+          this.volley(s, target, ammo, side);
+          const reload = reloadFor(s, ammo);
+          if (side === 'port') s.portReload = reload;
+          else s.starboardReload = reload;
+        }
+        s.aiCooldown = 700 + Math.random() * 500;
+      }
+      return;
+    }
+
     s.aiCooldown -= dt;
     if (s.aiCooldown > 0) return;
     const broadside = relativeBroadside(s, target);
@@ -775,11 +819,22 @@ export class NavalBattleScene extends Phaser.Scene {
     else if (this.enemyKind === 'pirate' && dist < 140) ammo = Math.random() < 0.5 ? 'grape' : 'round';
     else if (target.sail > target.sailMax * 0.7 && dist > maxR * 0.55) ammo = Math.random() < 0.35 ? 'chain' : 'round';
 
-    this.volley(s, target, ammo, side);
-    const reload = reloadFor(s, ammo);
-    if (side === 'port') s.portReload = reload;
-    else s.starboardReload = reload;
-    s.aiCooldown = 700 + Math.random() * 500;
+    // Telegráf: 420 ms-ig villog a „⚡ LŐ!" a hajó fölött, ez alatt a
+    // játékos még kikerülhet a lőtávból vagy eltakarhatja az oldalát.
+    s.pendingFire = { ammo, side };
+    s.telegraphT = 420;
+    if (!s.telegraphLabel) {
+      s.telegraphLabel = this.add.text(s.ship.x, s.ship.y - 58, '⚡ LŐ!', {
+        fontFamily: '"Press Start 2P"', fontSize: '12px', color: '#ff8a3d',
+        stroke: '#04141a', strokeThickness: 4,
+        backgroundColor: 'rgba(4,20,26,0.65)', padding: { x: 3, y: 2 },
+      }).setOrigin(0.5).setDepth(15);
+    }
+    s.telegraphLabel.setVisible(true).setAlpha(1);
+    this.tweens.add({
+      targets: s.telegraphLabel,
+      alpha: { from: 1, to: 0.35 }, yoyo: true, repeat: 3, duration: 90,
+    });
   }
 
 private updateEnvironmentalEffects(): void {
