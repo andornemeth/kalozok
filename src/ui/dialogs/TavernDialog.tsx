@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '@/state/gameStore';
 import { mulberry32, hashString } from '@/utils/rng';
 import { SHIPS } from '@/game/data/ships';
+import { Audio } from '@/audio/AudioManager';
+import { innkeeperNameFor } from '@/game/data/merchants';
 import type { Port } from '@/game/data/ports';
 
 interface Props {
@@ -34,6 +36,13 @@ export function TavernDialog({ port, onClose }: Props): JSX.Element {
   const ship = useGame((s) => s.ship);
   const addCrew = useGame((s) => s.setCrew);
   const [msg, setMsg] = useState<string | null>(null);
+
+  // Zenta csárdájában halk népdal szól — otthonos érzet a home port-hoz
+  useEffect(() => {
+    if (!port.homePort) return;
+    Audio.startFolkTune();
+    return () => Audio.stopFolkTune();
+  }, [port.homePort]);
 
   const offer = useMemo(() => {
     const rng = mulberry32(hashString(`${port.id}:crew:${Math.floor(days / 3)}`));
@@ -78,7 +87,10 @@ export function TavernDialog({ port, onClose }: Props): JSX.Element {
           ✕
         </button>
       </div>
-      <p className="text-xs opacity-75 mb-3">
+      <p className="text-[11px] opacity-85 mb-1">
+        {innkeeperNameFor(port.id, port.nation)} söntése — {port.name}
+      </p>
+      <p className="text-xs opacity-75 mb-3 italic">
         {t('tavern.flavor')}
       </p>
       <div className="flex flex-col gap-2">

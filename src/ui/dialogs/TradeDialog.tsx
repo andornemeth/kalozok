@@ -5,6 +5,7 @@ import { useGame } from '@/state/gameStore';
 import { GOODS, type GoodId } from '@/game/data/goods';
 import { SHIPS } from '@/game/data/ships';
 import { priceFor, stockFor } from '@/game/systems/EconomySystem';
+import { merchantNameFor } from '@/game/data/merchants';
 import type { Port } from '@/game/data/ports';
 
 function Sparkline({ values, current }: { values: number[]; current: number }): JSX.Element {
@@ -110,6 +111,9 @@ export function TradeDialog({ port, onClose }: Props): JSX.Element {
           ✕
         </button>
       </div>
+      <p className="text-[11px] opacity-85 mb-1">
+        {t('merchant.subtitle', { name: merchantNameFor(port.id, port.nation), port: port.name })}
+      </p>
       <p className="text-[10px] italic opacity-70 mb-2">{t('merchant.flavor')}</p>
       <div className="text-[11px] mb-2 flex justify-between">
         <span>💰 {gold}</span>

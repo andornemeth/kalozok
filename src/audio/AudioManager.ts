@@ -9,6 +9,11 @@ class AudioManagerImpl {
   private musicGain: GainNode | null = null;
   private musicNode: OscillatorNode | null = null;
   private waveTimer: number | null = null;
+  private folkMelOsc: OscillatorNode | null = null;
+  private folkDroneOsc: OscillatorNode | null = null;
+  private folkMelGain: GainNode | null = null;
+  private folkDroneGain: GainNode | null = null;
+  private folkTimer: number | null = null;
 
   init(): void {
     if (this.ctx) return;
@@ -195,6 +200,84 @@ class AudioManagerImpl {
       }
     }, 350);
     this.musicNode = null;
+  }
+
+  /**
+   * Procedurálisan szintetizált magyar népdal-loop. Pentaton D-dallam +
+   * halk duda-szerű kvint-drone. A zentai csárdához ("otthonos" érzet).
+   */
+  startFolkTune(): void {
+    if (this.folkMelOsc) return;
+    const ctx = this.ensureRunning();
+    if (!ctx) return;
+    const baseVol = this.musicVolume * 0.22;
+    if (baseVol <= 0) return;
+
+    // Dallam szólam — triangle, meleg
+    const melOsc = ctx.createOscillator();
+    melOsc.type = 'triangle';
+    const melGain = ctx.createGain();
+    melGain.gain.value = 0;
+    melGain.gain.linearRampToValueAtTime(baseVol, ctx.currentTime + 0.5);
+    melOsc.connect(melGain).connect(ctx.destination);
+    melOsc.frequency.value = 440;
+    melOsc.start();
+    this.folkMelOsc = melOsc;
+    this.folkMelGain = melGain;
+
+    // Duda-drone — mély triangle, kvint: D3 + A3
+    const droneOsc = ctx.createOscillator();
+    droneOsc.type = 'triangle';
+    droneOsc.frequency.value = 146.83; // D3
+    const droneGain = ctx.createGain();
+    droneGain.gain.value = 0;
+    droneGain.gain.linearRampToValueAtTime(baseVol * 0.35, ctx.currentTime + 0.5);
+    droneOsc.connect(droneGain).connect(ctx.destination);
+    droneOsc.start();
+    this.folkDroneOsc = droneOsc;
+    this.folkDroneGain = droneGain;
+
+    // Magyar pentaton-ihlet: D-moll pentaton (D F G A C) körül. 16 hangos fázis,
+    // lassú giusto (~96 BPM, negyed = ~625 ms).
+    const notes = [
+      440, 392, 349, 392, 440, 523, 494, 440,
+      349, 330, 294, 330, 349, 392, 349, 294,
+    ];
+    const durations = [
+      380, 380, 760, 380, 380, 380, 380, 760,
+      380, 380, 760, 380, 380, 380, 380, 1000,
+    ];
+    let i = 0;
+    const step = () => {
+      if (!this.folkMelOsc) return;
+      const note = notes[i % notes.length]!;
+      this.folkMelOsc.frequency.setValueAtTime(note, ctx.currentTime);
+      const dur = durations[i % durations.length]!;
+      i++;
+      this.folkTimer = window.setTimeout(step, dur);
+    };
+    step();
+  }
+
+  stopFolkTune(): void {
+    const ctx = this.ctx;
+    if (this.folkTimer != null) {
+      clearTimeout(this.folkTimer);
+      this.folkTimer = null;
+    }
+    const stopNode = (osc: OscillatorNode | null, gain: GainNode | null) => {
+      if (!osc || !gain || !ctx) return;
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+      setTimeout(() => {
+        try { osc.stop(); osc.disconnect(); } catch { /* noop */ }
+      }, 350);
+    };
+    stopNode(this.folkMelOsc, this.folkMelGain);
+    stopNode(this.folkDroneOsc, this.folkDroneGain);
+    this.folkMelOsc = null;
+    this.folkMelGain = null;
+    this.folkDroneOsc = null;
+    this.folkDroneGain = null;
   }
 }
 
