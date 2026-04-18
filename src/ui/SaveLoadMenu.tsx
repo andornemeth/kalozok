@@ -8,6 +8,7 @@ import { findPort } from '@/game/data/ports';
 
 interface Props {
   onClose: () => void;
+  onNewGame?: () => void;
 }
 
 function formatDate(ts: number): string {
@@ -72,9 +73,10 @@ function SaveCard({ env, slot, onSave, onLoad, onDelete }: {
   );
 }
 
-export function SaveLoadMenu({ onClose }: Props): JSX.Element {
+export function SaveLoadMenu({ onClose, onNewGame }: Props): JSX.Element {
   const { t } = useTranslation();
   const [envs, setEnvs] = useState<Record<number, SaveEnvelope | undefined>>({});
+  const [confirmNew, setConfirmNew] = useState(false);
   const game = useGame();
 
   const refresh = async () => {
@@ -163,6 +165,43 @@ export function SaveLoadMenu({ onClose }: Props): JSX.Element {
             />
           </label>
         </div>
+
+        {onNewGame && (
+          <div className="mt-3 pt-3 border-t border-parchment-200/15">
+            {confirmNew ? (
+              <div className="rounded bg-rose-900/30 ring-1 ring-rose-400/40 p-3">
+                <p className="text-[11px] font-serif mb-2">
+                  Biztos új játékot kezdesz? A jelenlegi karrier elvész, ha nem mentetted
+                  el egy helyre.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    className="pixel-btn ghost !text-[9px] flex-1"
+                    onClick={() => setConfirmNew(false)}
+                  >
+                    Mégse
+                  </button>
+                  <button
+                    className="pixel-btn danger !text-[9px] flex-1"
+                    onClick={() => {
+                      setConfirmNew(false);
+                      onNewGame();
+                    }}
+                  >
+                    🆕 Indulás
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                className="pixel-btn ghost w-full !text-[10px]"
+                onClick={() => setConfirmNew(true)}
+              >
+                🆕 Új játék indítása
+              </button>
+            )}
+          </div>
+        )}
       </motion.div>
     </div>
   );

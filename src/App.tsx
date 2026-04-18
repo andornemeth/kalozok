@@ -86,7 +86,12 @@ export default function App(): JSX.Element {
       )}
 
       {modal === 'settings' && <SettingsMenu onClose={() => setModal(null)} />}
-      {modal === 'save' && <SaveLoadMenu onClose={() => setModal(null)} />}
+      {modal === 'save' && (
+        <SaveLoadMenu
+          onClose={() => setModal(null)}
+          onNewGame={started ? () => setModal('newcareer') : undefined}
+        />
+      )}
       {modal === 'newcareer' && (
         <NewCareerModal onClose={() => setModal(null)} onStart={() => setModal('backstory')} />
       )}
