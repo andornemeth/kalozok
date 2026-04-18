@@ -200,7 +200,7 @@ export class NavalBattleScene extends Phaser.Scene {
     this.createHud();
     this.createControls();
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onWorldTap(p));
-    useGame.getState().setFlag('tutorialCombat', true);
+    // A tutorialCombat flag-et a React-es NavalTutorial overlay állítja, nem itt
     this.scale.on('resize', () => this.layoutHud());
     this.layoutHud();
     Audio.wave();

@@ -13,6 +13,7 @@ import { BackstoryModal } from '@/ui/BackstoryModal';
 import { AchievementToast } from '@/ui/AchievementToast';
 import { Objectives } from '@/ui/Objectives';
 import { TutorialOverlay } from '@/ui/TutorialOverlay';
+import { NavalTutorial } from '@/ui/NavalTutorial';
 import { Toasts } from '@/ui/Toasts';
 import { bus } from '@/game/EventBus';
 import { Audio } from '@/audio/AudioManager';
@@ -73,6 +74,7 @@ export default function App(): JSX.Element {
           {scene !== 'title' && <HUD onMenu={() => setModal('save')} onSettings={() => setModal('settings')} />}
           {scene === 'world' && <Objectives />}
           {scene === 'world' && <TutorialOverlay />}
+          {scene === 'naval' && <NavalTutorial />}
           {scene === 'port' && <PortMenu />}
           <AchievementToast />
           <Toasts />
