@@ -148,7 +148,11 @@ export class NavalBattleScene extends Phaser.Scene {
   private enemyHpBar!: Phaser.GameObjects.Graphics;
   private compassG!: Phaser.GameObjects.Graphics;
   private reloadG!: Phaser.GameObjects.Graphics;
+  private weatherTxt!: Phaser.GameObjects.Text;
+  private reloadLabelP!: Phaser.GameObjects.Text;
+  private reloadLabelS!: Phaser.GameObjects.Text;
   private lastCry = 0;
+  private damageEffectAccum = 0;
 
   constructor() {
     super('Naval');
@@ -159,6 +163,13 @@ export class NavalBattleScene extends Phaser.Scene {
     this.enemyNation = data.enemyNation ?? 'crnagorac';
     this.ended = false;
     this.elapsed = 0;
+    this.lastCry = 0;
+    this.damageEffectAccum = 0;
+    // Fontos: scene újraindításnál a Phaser a GameObject-eket destroyolja, de
+    // a class instance megmarad — ezért a mezőket szándékosan undefined-ra
+    // tesszük, a create() majd új objektumokat tesz rájuk.
+    this.player = undefined as unknown as CombatShip;
+    this.enemy = undefined as unknown as CombatShip;
   }
 
   create(): void {
@@ -314,6 +325,19 @@ export class NavalBattleScene extends Phaser.Scene {
     this.compassG = this.add.graphics().setScrollFactor(0).setDepth(30);
     this.reloadG = this.add.graphics().setScrollFactor(0).setDepth(31);
     this.add.image(54, 84, 'compass-rose').setScrollFactor(0).setDepth(29);
+    // Előre létrehozott HUD szövegek — frame-enként csak update
+    this.weatherTxt = this.add.text(115, 84, '', {
+      fontFamily: '"Press Start 2P"', fontSize: '9px', color: '#88e07b',
+      stroke: '#04141a', strokeThickness: 3,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(32);
+    this.reloadLabelP = this.add.text(0, 0, 'BAL', {
+      fontFamily: '"Press Start 2P"', fontSize: '9px', color: '#c6d5ee',
+      stroke: '#04141a', strokeThickness: 3,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(32);
+    this.reloadLabelS = this.add.text(0, 0, 'JOBB', {
+      fontFamily: '"Press Start 2P"', fontSize: '9px', color: '#c6d5ee',
+      stroke: '#04141a', strokeThickness: 3,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(32);
   }
 
   private drawBars(): void {
@@ -351,25 +375,11 @@ export class NavalBattleScene extends Phaser.Scene {
     const weather = this.weatherGaugeText();
     cg.fillStyle(0x04141a, 0.8);
     cg.fillRoundedRect(86, 72, 58, 24, 4);
-    this.drawStaticText('weather-txt', 115, 84, weather, weather === 'TE' ? '#88e07b' : '#ff8070');
+    this.weatherTxt.setText(weather);
+    this.weatherTxt.setColor(weather === 'TE' ? '#88e07b' : '#ff8070');
 
     // Port / starboard reload bar-ok a fire-gomb körül
     this.drawReloadBars();
-  }
-
-  /** Szöveg cache — egy-egy key-re egyetlen Text objektum. */
-  private staticTexts = new Map<string, Phaser.GameObjects.Text>();
-  private drawStaticText(key: string, x: number, y: number, value: string, color: string): void {
-    let t = this.staticTexts.get(key);
-    if (!t) {
-      t = this.add.text(x, y, value, {
-        fontFamily: '"Press Start 2P"', fontSize: '9px', color,
-        stroke: '#04141a', strokeThickness: 3,
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(32);
-      this.staticTexts.set(key, t);
-    } else {
-      t.setPosition(x, y).setText(value).setColor(color);
-    }
   }
 
   private weatherGaugeText(): string {
@@ -383,10 +393,9 @@ export class NavalBattleScene extends Phaser.Scene {
 
   private drawReloadBars(): void {
     this.reloadG.clear();
-    if (!this.fireBtn) return;
+    if (!this.fireBtn || !this.player) return;
     const bx = this.fireBtn.x;
     const by = this.fireBtn.y;
-    // Port = bal csík, starboard = jobb csík a gomb alatt
     const maxW = 40;
     const drawSide = (xOff: number, loaded: number, max: number, color: number) => {
       const frac = max > 0 ? Phaser.Math.Clamp(1 - loaded / max, 0, 1) : 1;
@@ -398,8 +407,8 @@ export class NavalBattleScene extends Phaser.Scene {
     const cur = reloadFor(this.player, this.ammo);
     drawSide(-26, this.player.portReload, cur, 0x88e07b);
     drawSide(26, this.player.starboardReload, cur, 0x88e07b);
-    this.drawStaticText('reload-label-p', bx - 26, by + 38, 'BAL', '#c6d5ee');
-    this.drawStaticText('reload-label-s', bx + 26, by + 38, 'JOBB', '#c6d5ee');
+    this.reloadLabelP.setPosition(bx - 26, by + 38);
+    this.reloadLabelS.setPosition(bx + 26, by + 38);
   }
 
   private createControls(): void {
@@ -698,6 +707,7 @@ export class NavalBattleScene extends Phaser.Scene {
   // --- Frame update ---
 
   update(_t: number, deltaMs: number): void {
+    if (!this.player || !this.enemy) return;
     this.elapsed += deltaMs;
     this.wind.update(deltaMs);
     this.advanceShip(this.player, deltaMs);
@@ -830,7 +840,6 @@ export class NavalBattleScene extends Phaser.Scene {
     this.time.delayedCall(800, () => this.scene.start('Duel', { enemyCrew: s.crew, enemyKind: this.enemyKind, defender: true }));
   }
 
-  private damageEffectAccum = 0;
   private updateDamageEffects(): void {
     this.damageEffectAccum += 16;
     if (this.damageEffectAccum < 800) return;
