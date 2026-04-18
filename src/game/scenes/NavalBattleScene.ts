@@ -36,8 +36,16 @@ interface CombatShip {
   // Per-oldal független reload timer (ms). 0 = kész a tüzelésre.
   portReload: number;
   starboardReload: number;
-  // Utolsó tüzelés idejének nyomkövetése (AI cadence).
+  // AI cooldown, csak ellenfélnél használt.
   aiCooldown: number;
+  // AI elkötelezi magát egy haladási iránnyal, hogy ne kapkodjon.
+  aiCommitUntil: number;
+  // Célzási képesség (0..1). Játékos 1.0, ellenfelek típustól függ.
+  aiSkill: number;
+  // Vitorla állás: teljes (gyors, nehezen fordul) vagy csata (lassabb, fordulékony).
+  sailMode: 'full' | 'battle';
+  // Játékos aktív forgatása gombbal: -1 balra, 0 nem fordul, +1 jobbra.
+  turning: -1 | 0 | 1;
 }
 
 // --- Mechanika helperek --------------------------------------------------
@@ -104,18 +112,25 @@ function isRaking(attacker: CombatShip, target: CombatShip): boolean {
   return Math.abs(Math.cos(rel)) > 0.78;
 }
 
-/** Találati esély. Figyelembe veszi a távolságot, oldalszöget, a szélirányt. */
+/** Találati esély. Figyelembe veszi a távolságot, oldalszöget, szelet, lövő képességét
+ *  és legénység-állapotát. */
 function hitChance(attacker: CombatShip, target: CombatShip, ammo: Ammo, wind: WindSystem): number {
   const dist = Phaser.Math.Distance.Between(attacker.ship.x, attacker.ship.y, target.ship.x, target.ship.y);
   const maxR = rangeFor(attacker, ammo);
-  // Linear dropoff a hatásos távolságon túl.
-  const distFactor = Phaser.Math.Clamp(1 - (dist - maxR * 0.35) / (maxR * 0.9), 0.15, 0.95);
+  // Távolság-szorzó: közelben ~0.8, félig meddig ~0.5, max-nál 0.15
+  const normDist = Phaser.Math.Clamp(dist / maxR, 0, 1);
+  const distFactor = Phaser.Math.Clamp(1 - normDist * normDist * 0.75, 0.15, 0.9);
   const side = relativeBroadside(attacker, target);
-  // Szél ellen stabilabb célzás, hátszélben füst takarja a célt.
+  // Szélre/széllel szembeni korrekció
   const windAngle = Math.atan2(target.ship.y - attacker.ship.y, target.ship.x - attacker.ship.x);
   const windAlign = Math.abs(Math.cos(windAngle - wind.state.dir));
   const windPenalty = 1 - windAlign * 0.08;
-  return Phaser.Math.Clamp(distFactor * (0.55 + 0.45 * side) * windPenalty, 0.1, 0.95);
+  // Legénységi képesség: 70%-os legénység = 85%-os pontosság
+  const crewRatio = Math.max(0.25, attacker.crew / Math.max(1, attacker.crewMax));
+  const crewFactor = 0.55 + 0.45 * crewRatio;
+  // Teljes célzási képesség
+  const skillFactor = attacker.aiSkill * crewFactor;
+  return Phaser.Math.Clamp(distFactor * (0.45 + 0.45 * side) * windPenalty * skillFactor, 0.05, 0.9);
 }
 
 /** Zsákmány skálázás hajó-osztály és ellenfél-típus alapján. */
@@ -143,6 +158,9 @@ export class NavalBattleScene extends Phaser.Scene {
   private fireBtn!: Phaser.GameObjects.Container;
   private boardBtn!: Phaser.GameObjects.Container;
   private fleeBtn!: Phaser.GameObjects.Container;
+  private leftTurnBtn!: Phaser.GameObjects.Container;
+  private rightTurnBtn!: Phaser.GameObjects.Container;
+  private sailBtn!: Phaser.GameObjects.Container;
   private ammoBtns: Phaser.GameObjects.Container[] = [];
   private playerHpBar!: Phaser.GameObjects.Graphics;
   private enemyHpBar!: Phaser.GameObjects.Graphics;
@@ -223,11 +241,16 @@ export class NavalBattleScene extends Phaser.Scene {
       sailMax: stats.sailMax,
       crewMax: stats.crewMax,
       cannons: stats.cannons,
-    }, 0.06 * stats.speed);
+    }, 0.06 * stats.speed, 1.0);
 
     const eStats = this.pickEnemyStats();
     const tone: ShipTone = this.enemyKind === 'pirate' ? 'enemy' : this.enemyKind === 'navy' ? 'navy' : 'merchant';
-    this.enemy = this.makeShip(tone, eStats.silhouette, eStats.shipClass, ARENA_W / 2 + 220, ARENA_H / 2 - 80, Math.PI, eStats, 0.05 * SHIPS[eStats.shipClass].speed);
+    // AI célzási képesség típustól függ — ennek hála nem talál el mindig
+    const aiSkill =
+      this.enemyKind === 'merchant' ? 0.45 :
+      this.enemyKind === 'navy' ? 0.80 :
+      0.60; // pirate
+    this.enemy = this.makeShip(tone, eStats.silhouette, eStats.shipClass, ARENA_W / 2 + 220, ARENA_H / 2 - 80, Math.PI, eStats, 0.05 * SHIPS[eStats.shipClass].speed, aiSkill);
   }
 
   private pickEnemyStats(): {
@@ -281,6 +304,7 @@ export class NavalBattleScene extends Phaser.Scene {
       cannons: number;
     },
     baseSpeed: number,
+    aiSkill: number,
   ): CombatShip {
     const ship = new ShipGraphic(this, x, y, { tone, silhouette, scale: 0.95 });
     ship.setDepth(5);
@@ -289,6 +313,8 @@ export class NavalBattleScene extends Phaser.Scene {
       ship, tone, silhouette, shipClass, heading, baseSpeed,
       desiredHeading: heading,
       portReload: 0, starboardReload: 0, aiCooldown: 800,
+      aiCommitUntil: 0, aiSkill,
+      sailMode: 'full', turning: 0,
       ...stats,
     };
   }
@@ -412,24 +438,59 @@ export class NavalBattleScene extends Phaser.Scene {
   }
 
   private createControls(): void {
-    const btn = (label: string, color: number, handler: () => void) => {
+    // Tap-release gomb — egyszeri tüzeléshez / akcióhoz
+    const btn = (label: string, color: number, w: number, h: number, fontSize: string, handler: () => void) => {
       const c = this.add.container(0, 0).setScrollFactor(0).setDepth(30);
-      const bg = this.add.rectangle(0, 0, 92, 44, color, 0.92).setStrokeStyle(2, 0xfbf5e3);
+      const bg = this.add.rectangle(0, 0, w, h, color, 0.92).setStrokeStyle(2, 0xfbf5e3);
       const txt = this.add
-        .text(0, 0, label, { fontFamily: '"Press Start 2P"', fontSize: '9px', color: '#fbf5e3' })
+        .text(0, 0, label, { fontFamily: '"Press Start 2P"', fontSize, color: '#fbf5e3', align: 'center' })
         .setOrigin(0.5);
       c.add([bg, txt]);
-      c.setSize(92, 44);
+      c.setSize(w, h);
       c.setInteractive({ useHandCursor: true });
       c.on('pointerup', handler);
       c.on('pointerdown', () => bg.setFillStyle(color, 0.7));
       c.on('pointerout', () => bg.setFillStyle(color, 0.92));
       return c;
     };
+    // Hold-to-turn gomb — lenyomva tartva aktivál, felengedve deaktivál
+    const holdBtn = (label: string, color: number, w: number, h: number, onHold: () => void, onRelease: () => void) => {
+      const c = this.add.container(0, 0).setScrollFactor(0).setDepth(30);
+      const bg = this.add.rectangle(0, 0, w, h, color, 0.92).setStrokeStyle(3, 0xfbf5e3);
+      const txt = this.add
+        .text(0, 0, label, { fontFamily: '"Press Start 2P"', fontSize: '20px', color: '#fbf5e3' })
+        .setOrigin(0.5);
+      c.add([bg, txt]);
+      c.setSize(w, h);
+      c.setInteractive({ useHandCursor: true });
+      c.on('pointerdown', () => { bg.setFillStyle(color, 0.6); onHold(); });
+      const release = () => { bg.setFillStyle(color, 0.92); onRelease(); };
+      c.on('pointerup', release);
+      c.on('pointerout', release);
+      c.on('pointerupoutside', release);
+      return c;
+    };
+
+    // Bal hüvelykujj — forgató gombok
+    this.leftTurnBtn = holdBtn('◀', 0x145f65, 78, 78,
+      () => { this.player.turning = -1; vibrate('light'); },
+      () => { if (this.player.turning === -1) this.player.turning = 0; },
+    );
+    this.rightTurnBtn = holdBtn('▶', 0x145f65, 78, 78,
+      () => { this.player.turning = 1; vibrate('light'); },
+      () => { if (this.player.turning === 1) this.player.turning = 0; },
+    );
+    this.sailBtn = btn('VITORLA\nTELI', 0x3a5a8a, 86, 48, '8px', () => {
+      this.player.sailMode = this.player.sailMode === 'full' ? 'battle' : 'full';
+      this.refreshSailBtn();
+      vibrate('light');
+    });
+
+    // Jobb hüvelykujj — lőszer, tűz, bordázás, menekülés
     const ammos: Ammo[] = ['round', 'chain', 'grape'];
     const labels: Record<Ammo, string> = { round: 'GOLYÓ', chain: 'LÁNC', grape: 'KARTÁCS' };
     this.ammoBtns = ammos.map((a) => {
-      const c = btn(labels[a], 0x1a7f86, () => {
+      const c = btn(labels[a], 0x1a7f86, 86, 32, '8px', () => {
         this.ammo = a;
         this.refreshAmmoBtns();
         vibrate('light');
@@ -437,11 +498,18 @@ export class NavalBattleScene extends Phaser.Scene {
       c.setData('ammo', a);
       return c;
     });
-    this.fireBtn = btn('TŰZ', 0x7a2e0e, () => this.playerFire());
-    this.boardBtn = btn('BORDA', 0xb99137, () => this.attemptBoard());
-    this.fleeBtn = btn('MENEKÜL', 0x4a4238, () => this.flee());
+    this.fireBtn = btn('TŰZ', 0x7a2e0e, 112, 78, '14px', () => this.playerFire());
+    this.boardBtn = btn('BORDA', 0xb99137, 86, 32, '8px', () => this.attemptBoard());
+    this.fleeBtn = btn('MENEKÜL', 0x4a4238, 86, 32, '8px', () => this.flee());
     this.refreshAmmoBtns();
+    this.refreshSailBtn();
     this.layoutHud();
+  }
+
+  private refreshSailBtn(): void {
+    if (!this.sailBtn || !this.player) return;
+    const txt = this.sailBtn.list[1] as Phaser.GameObjects.Text;
+    txt.setText(this.player.sailMode === 'full' ? 'VITORLA\nTELI' : 'VITORLA\nCSATA');
   }
 
   private refreshAmmoBtns(): void {
@@ -453,24 +521,35 @@ export class NavalBattleScene extends Phaser.Scene {
   }
 
   private layoutHud(): void {
-    const yBottom = this.scale.height - 36;
-    this.ammoBtns.forEach((b, i) => b.setPosition(60 + i * 100, yBottom));
-    this.fireBtn?.setPosition(this.scale.width - 60, yBottom - 16);
-    this.boardBtn?.setPosition(this.scale.width - 160, yBottom);
-    this.fleeBtn?.setPosition(this.scale.width - 60, yBottom - 72);
-    this.hintLabel?.setPosition(this.scale.width / 2, 18);
-    this.rangeLabel?.setPosition(this.scale.width / 2, 38);
+    const W = this.scale.width;
+    const H = this.scale.height;
+    const bottomPad = 20;
+
+    // --- Bal alsó sarok: kormányzás (bal hüvelykujj) ---
+    const leftX = 58;
+    this.leftTurnBtn?.setPosition(leftX, H - bottomPad - 40);
+    this.rightTurnBtn?.setPosition(leftX + 90, H - bottomPad - 40);
+    this.sailBtn?.setPosition(leftX + 45, H - bottomPad - 40 - 70);
+
+    // --- Jobb alsó sarok: tűz + lőszer + akciók (jobb hüvelykujj) ---
+    const rightX = W - 60;
+    // Tűz gomb alul középen
+    this.fireBtn?.setPosition(rightX, H - bottomPad - 40);
+    // Lőszer sor közvetlenül a tűz gomb fölött
+    const ammoY = H - bottomPad - 40 - 74;
+    this.ammoBtns.forEach((b, i) => b.setPosition(rightX - 92 + i * 92, ammoY));
+    // Bordázás + Menekülés a tűz gombtól balra
+    this.boardBtn?.setPosition(rightX - 112, H - bottomPad - 56);
+    this.fleeBtn?.setPosition(rightX - 112, H - bottomPad - 20);
+
+    // --- Felső sáv: hint + range ---
+    this.hintLabel?.setPosition(W / 2, 18);
+    this.rangeLabel?.setPosition(W / 2, 38);
   }
 
-  private onWorldTap(p: Phaser.Input.Pointer): void {
-    if (p.y < 60 || p.y > this.scale.height - 70) return;
-    if (p.x > this.scale.width - 220 || p.x < 220) return;
-    const w = this.cameras.main.getWorldPoint(p.x, p.y);
-    const dx = w.x - this.player.ship.x;
-    const dy = w.y - this.player.ship.y;
-    if (Math.hypot(dx, dy) < 40) return;
-    this.player.desiredHeading = Math.atan2(dy, dx);
-    Particles.splash(this, w.x, w.y, 4);
+  private onWorldTap(_p: Phaser.Input.Pointer): void {
+    // Tap-to-heading kikapcsolva — most kifejezett bal/jobb forgató gombokkal
+    // kormányozzuk a hajót. A tap a világra semmit sem tesz.
   }
 
   // --- Tüzelés ---
@@ -512,6 +591,14 @@ export class NavalBattleScene extends Phaser.Scene {
     const ox = Math.cos(sideAngle);
     const oy = Math.sin(sideAngle);
     const raking = isRaking(attacker, target);
+    // Szórás skálázás: távolság + lövő képesség függvényében
+    const dist = Phaser.Math.Distance.Between(attacker.ship.x, attacker.ship.y, target.ship.x, target.ship.y);
+    const maxR = rangeFor(attacker, ammo);
+    const distNorm = Phaser.Math.Clamp(dist / maxR, 0, 1.2);
+    // Közel 8px szórás, maxlőtávon ~40px. Gyenge lövő 1.6x szór.
+    const spreadBase = 8 + distNorm * 32;
+    const spreadMult = 1 + (1 - attacker.aiSkill) * 0.8;
+    const maxSpread = spreadBase * spreadMult;
     for (let i = 0; i < shots; i++) {
       const offset = (i - (shots - 1) / 2) * 12;
       const px = attacker.ship.x + Math.cos(attacker.heading) * offset + ox * 20;
@@ -519,9 +606,10 @@ export class NavalBattleScene extends Phaser.Scene {
       Particles.flash(this, px, py);
       Particles.smoke(this, px, py, { count: 4, depth: 12, scale: 0.9 });
       const ball = this.add.image(px, py, tex).setDepth(11);
-      const spread = (Math.random() - 0.5) * 14;
-      const tx = target.ship.x + Math.cos(sideAngle) * spread;
-      const ty = target.ship.y + Math.sin(sideAngle) * spread;
+      const spreadX = (Math.random() - 0.5) * maxSpread;
+      const spreadY = (Math.random() - 0.5) * maxSpread;
+      const tx = target.ship.x + Math.cos(sideAngle) * spreadX + spreadY * 0.4;
+      const ty = target.ship.y + Math.sin(sideAngle) * spreadX + spreadY * 0.4;
       this.tweens.add({
         targets: ball,
         x: tx, y: ty,
@@ -730,16 +818,44 @@ export class NavalBattleScene extends Phaser.Scene {
     const pb = relativeBroadside(this.player, this.enemy);
     const dist = Phaser.Math.Distance.Between(this.player.ship.x, this.player.ship.y, this.enemy.ship.x, this.enemy.ship.y);
     const maxR = rangeFor(this.player, this.ammo);
-    // Range label — mindig látható
     const inRange = dist <= maxR;
-    const color = dist < 110 ? '#ffd86a' : inRange ? '#88e07b' : '#ff8080';
+    const rangeColor = dist < 110 ? '#ffd86a' : inRange ? '#88e07b' : '#ff8080';
     this.rangeLabel.setText(`${Math.round(dist)} / ${Math.round(maxR)} px`);
-    this.rangeLabel.setColor(color);
-    // Hint — 250ms-enként frissítsünk, ne pörögjön
+    this.rangeLabel.setColor(rangeColor);
+
+    const side = sideOfTarget(this.player, this.enemy);
+    const readyT = side === 'port' ? this.player.portReload : this.player.starboardReload;
+    const canFire = pb >= 0.4 && dist <= maxR && readyT <= 0;
+
+    // Tűz gomb színe az állapot alapján
+    const fireBg = this.fireBtn?.list[0] as Phaser.GameObjects.Rectangle | undefined;
+    const fireTxt = this.fireBtn?.list[1] as Phaser.GameObjects.Text | undefined;
+    if (fireBg && fireTxt) {
+      if (canFire) {
+        fireBg.setFillStyle(0x2d5a2d, 0.95);
+        fireBg.setStrokeStyle(3, 0x88e07b);
+        fireTxt.setText(`TŰZ\n${side === 'port' ? 'BAL' : 'JOBB'}`);
+        fireTxt.setColor('#fbf5e3');
+      } else if (readyT > 0) {
+        fireBg.setFillStyle(0x7a5e14, 0.9);
+        fireBg.setStrokeStyle(2, 0xb99137);
+        fireTxt.setText('TÖLT…');
+        fireTxt.setColor('#ffd86a');
+      } else if (pb < 0.4) {
+        fireBg.setFillStyle(0x7a2e0e, 0.75);
+        fireBg.setStrokeStyle(2, 0xff8070);
+        fireTxt.setText('FORDULJ');
+        fireTxt.setColor('#ff8070');
+      } else {
+        fireBg.setFillStyle(0x7a2e0e, 0.75);
+        fireBg.setStrokeStyle(2, 0xff8070);
+        fireTxt.setText('TÚL\nMESSZE');
+        fireTxt.setColor('#ff8070');
+      }
+    }
+
     if (this.elapsed % 250 < 16) {
       this.hintLabel.setAlpha(1);
-      const side = sideOfTarget(this.player, this.enemy);
-      const readyT = side === 'port' ? this.player.portReload : this.player.starboardReload;
       if (pb < 0.4) this.hintLabel.setText('Fordulj oldalra!');
       else if (dist > maxR) this.hintLabel.setText('Közeledj…');
       else if (dist < 90) this.hintLabel.setText('Bordázható!');
@@ -749,12 +865,24 @@ export class NavalBattleScene extends Phaser.Scene {
   }
 
   private advanceShip(s: CombatShip, dt: number): void {
-    const diff = Phaser.Math.Angle.Wrap(s.desiredHeading - s.heading);
     const classTurn = SHIPS[s.shipClass].turn;
-    const turnRate = 0.0018 * classTurn;
-    s.heading += Phaser.Math.Clamp(diff, -turnRate * dt, turnRate * dt);
+    // Csata-vitorla: lassabb de fordulékonyabb
+    const turnMult = s.sailMode === 'battle' ? 1.7 : 1.0;
+    const turnRate = 0.0018 * classTurn * turnMult;
+
+    // Játékos aktív forgatása gombbal — turning -1/+1 direktben forgat
+    if (s.turning !== 0) {
+      const delta = s.turning * turnRate * dt;
+      s.heading += delta;
+      s.desiredHeading = s.heading;
+    } else {
+      const diff = Phaser.Math.Angle.Wrap(s.desiredHeading - s.heading);
+      s.heading += Phaser.Math.Clamp(diff, -turnRate * dt, turnRate * dt);
+    }
+
     const sailFactor = s.sail / s.sailMax;
-    const speed = s.baseSpeed * this.wind.speedFactor(s.heading) * (0.45 + 0.55 * sailFactor);
+    const sailSpeedMult = s.sailMode === 'battle' ? 0.55 : 1.0;
+    const speed = s.baseSpeed * this.wind.speedFactor(s.heading) * (0.45 + 0.55 * sailFactor) * sailSpeedMult;
     const nx = Phaser.Math.Clamp(s.ship.x + Math.cos(s.heading) * speed * dt, 80, ARENA_W - 80);
     const ny = Phaser.Math.Clamp(s.ship.y + Math.sin(s.heading) * speed * dt, 80, ARENA_H - 80);
     s.ship.setPosition(nx, ny);
@@ -767,38 +895,39 @@ export class NavalBattleScene extends Phaser.Scene {
     const angleTo = Math.atan2(target.ship.y - s.ship.y, target.ship.x - s.ship.x);
     const maxR = rangeFor(s, 'round');
 
-    // Személyiség EnemyKind szerint
-    if (this.enemyKind === 'merchant') {
-      // Menekül szél alá, oldalra fordul csak ha menekvés közben célozhat
-      const downwind = this.wind.state.dir; // ahol a szél fúj felé
-      // Preferált menekülési irány: a szél irányában, távolodva a játékostól
-      const flee = angleTo + Math.PI;
-      // Keveréke: a szél és a menekülés átlaga, a szél kicsit súlyosabb
-      s.desiredHeading = 0.55 * flee + 0.45 * downwind;
-      if (s.hull < s.hullMax * 0.3) s.desiredHeading = flee; // pánik
-    } else if (this.enemyKind === 'navy') {
-      // Párhuzamos távol-harc: tartja a ~70% hatásos lőtávot, oldalra fordul
-      const ideal = maxR * 0.72;
-      if (dist > ideal + 60) s.desiredHeading = angleTo;
-      else if (dist < ideal - 60) s.desiredHeading = angleTo + Math.PI;
-      else s.desiredHeading = angleTo - Math.PI / 2; // parallel
-    } else {
-      // Pirate: közelít a bordázás felé
-      if (dist > 150) {
-        s.desiredHeading = angleTo;
-      } else if (dist > 95) {
-        // Kis oldalra fordulás egy broadside-ra
-        s.desiredHeading = angleTo - Math.PI / 2.2;
-      } else {
-        // Közel van — bordáz
-        this.aiAttemptBoard(s);
-        s.desiredHeading = angleTo;
-      }
-    }
+    // Elköteleződés: az AI csak ~1 mp-enként dönt új irányról, nem kapkod.
+    const needNewDecision = this.elapsed >= s.aiCommitUntil;
 
-    // Visszavonulás extrém sérüléskor
-    if (s.hull < s.hullMax * 0.18 || s.crew < s.crewMax * 0.2) {
-      s.desiredHeading = angleTo + Math.PI;
+    if (needNewDecision) {
+      if (this.enemyKind === 'merchant') {
+        // Kereskedő menekül szél alá, kerüli a játékost
+        const downwind = this.wind.state.dir;
+        const flee = angleTo + Math.PI;
+        s.desiredHeading = 0.55 * flee + 0.45 * downwind;
+        if (s.hull < s.hullMax * 0.3) s.desiredHeading = flee;
+      } else if (this.enemyKind === 'navy') {
+        // Párhuzamos távol-harc
+        const ideal = maxR * 0.72;
+        if (dist > ideal + 60) s.desiredHeading = angleTo;
+        else if (dist < ideal - 60) s.desiredHeading = angleTo + Math.PI;
+        else s.desiredHeading = angleTo - Math.PI / 2;
+      } else {
+        // Kalóz: bordázáshoz közelít
+        if (dist > 150) s.desiredHeading = angleTo;
+        else if (dist > 95) s.desiredHeading = angleTo - Math.PI / 2.2;
+        else {
+          this.aiAttemptBoard(s);
+          s.desiredHeading = angleTo;
+        }
+      }
+
+      // Visszavonulás extrém sérüléskor (felülírja a típus-stratégiát)
+      if (s.hull < s.hullMax * 0.18 || s.crew < s.crewMax * 0.2) {
+        s.desiredHeading = angleTo + Math.PI;
+      }
+
+      // Legközelebb 900-1400 ms múlva gondolkodik újra
+      s.aiCommitUntil = this.elapsed + 900 + Math.random() * 500;
     }
 
     this.advanceShip(s, dt);
@@ -816,7 +945,7 @@ export class NavalBattleScene extends Phaser.Scene {
     }
     // Lőszer választás a helyzet függvényében
     let ammo: Ammo = 'round';
-    if (this.enemyKind === 'merchant') ammo = Math.random() < 0.7 ? 'chain' : 'round'; // csak el akar menekülni
+    if (this.enemyKind === 'merchant') ammo = Math.random() < 0.7 ? 'chain' : 'round';
     else if (this.enemyKind === 'pirate' && dist < 140) ammo = Math.random() < 0.5 ? 'grape' : 'round';
     else if (target.sail > target.sailMax * 0.7 && dist > maxR * 0.55) ammo = Math.random() < 0.35 ? 'chain' : 'round';
 
