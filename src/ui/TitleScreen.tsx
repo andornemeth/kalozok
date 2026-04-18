@@ -47,7 +47,7 @@ export function TitleScreen({ onNew, onSettings, onSaves }: Props): JSX.Element 
           {t('app.title')}
         </h1>
         <p className="mt-2 font-serif italic text-parchment-100 text-base sm:text-xl">
-          <span className="text-red-400">Pegya</span>, a Karib-tenger ura!
+          <span className="text-red-400">Pegya</span>, a Pannon tenger betyára
         </p>
         <p className="mt-3 font-serif italic text-parchment-200/80 text-sm">{t('app.subtitle')}</p>
         <p className="mt-4 text-xs sm:text-sm text-parchment-100/70 max-w-xs mx-auto">{t('app.tagline')}</p>

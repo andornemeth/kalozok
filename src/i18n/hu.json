@@ -1,9 +1,9 @@
 {
   "app": {
     "title": "Kalózok",
-    "titleFull": "Kalózok – Pegya, a Karib-tenger ura!",
-    "subtitle": "Pegya, a zentai kalóz",
-    "tagline": "Délvidéki szívvel a Karib-tengeren — vitorla, ágyú, paprika."
+    "titleFull": "Kalózok – Pegya, a Pannon tenger betyára",
+    "subtitle": "Pegya, a zentai betyár",
+    "tagline": "Elárasztott Pannon-medence, vitorla és lőpor — magyar szívvel, délvidéki ízekkel."
   },
   "title": {
     "new": "Új karrier",
@@ -43,14 +43,17 @@
     "easy": "Újonc",
     "normal": "Tenger farkasa",
     "hard": "Rémálom",
-    "hint": "Alapértelmezett: Pegya, a zentai kalóz"
+    "hint": "Alapértelmezett: Pegya, a zentai betyár"
   },
   "nations": {
-    "england": "Anglia",
-    "spain": "Spanyolország",
-    "france": "Franciaország",
-    "netherlands": "Hollandia",
-    "pirate": "Szabadkalóz"
+    "magyar": "Magyarok",
+    "rac": "Rácok",
+    "bunyevac": "Bunyevácok",
+    "olah": "Oláhok",
+    "tot": "Tótok",
+    "oszman": "Oszmánok",
+    "svab": "Svábok",
+    "crnagorac": "Crnagoracok"
   },
   "hud": {
     "gold": "arany",
@@ -75,13 +78,13 @@
   "port": {
     "welcome": "Szervusz {{port}} kikötőjében, kapitány!",
     "welcomeHome": "Hazaértél, Pegya! {{port}} ölel át.",
-    "tavern": "Kocsma",
+    "tavern": "Csárda",
     "merchant": "Kereskedő",
     "shipyard": "Hajóács",
-    "governor": "Kormányzó",
+    "governor": "Ispán",
     "tanya": "Tanya (Anikó)",
-    "leave": "Kifutás a tengerre",
-    "jail": "Börtön"
+    "leave": "Kifutás a vízre",
+    "jail": "Tömlöc"
   },
   "tanya": {
     "title": "A zentai tanya",
@@ -97,7 +100,7 @@
     "anikoName": "Anikó",
     "csillagName": "Csillag",
     "borokaName": "Boróka",
-    "letterIntro": "„Drága Pegyám! A lányok ma ismét a tengerről kérdeztek. Csillag új dalt tanult, Boróka a macskára vigyáz. Vigyázz magadra — hazavárunk.\" — Anikó",
+    "letterIntro": "„Drága Pegyám! A lányok ma ismét a vízről kérdeztek. Csillag új dalt tanult, Boróka a macskára vigyáz. Vigyázz magadra — hazavárunk.\" — Anikó",
     "farewell": "Mennem kell, szerelmem.",
     "familyStatus": "Család összesen: {{total}}/100"
   },
@@ -106,8 +109,8 @@
     "hire": "Toborzás ({{cost}} arany)",
     "rumors": "Pletykák meghallgatása",
     "drink": "Italozás",
-    "noCrew": "Ma nincsenek vállalkozó tengerészek.",
-    "hired": "{{count}} új tengerész csatlakozott.",
+    "noCrew": "Ma nincsenek vállalkozó legények.",
+    "hired": "{{count}} új legény csatlakozott.",
     "rumor": "Egy részeg matróz suttogja…",
     "flavor": "A kocsmáros egy tál paprikás krumplit nyújt. A tűzhely mellett cimbalom szól."
   },
@@ -145,13 +148,13 @@
     "upgradeCannons": "Több ágyú ({{cost}})",
     "upgradeSails": "Jobb vitorlázat ({{cost}})",
     "newShip": "Új hajó",
-    "repaired": "Hajó teljesen rendben — ragyog mint a duna-víz.",
+    "repaired": "Hajó teljesen rendben — ragyog mint a tiszai víz.",
     "hullStatus": "Törzs: {{current}}/{{max}}",
     "sailStatus": "Vitorla: {{current}}/{{max}}",
     "breakdown": "Törzs-javítás: {{hull}}g · Vitorla-folt: {{sail}}g"
   },
   "governor": {
-    "title": "A Kormányzói palota",
+    "title": "Az Ispáni palota",
     "mission": "Megbízás vállalása",
     "letterOfMarque": "Megbízólevél",
     "reward": "Jutalom",
@@ -160,7 +163,7 @@
     "dance": "Tánc"
   },
   "naval": {
-    "title": "Tengeri csata",
+    "title": "Vízi csata",
     "roundShot": "Tömör golyó",
     "chainShot": "Láncgolyó",
     "grapeShot": "Kartács",
@@ -175,7 +178,7 @@
     "cryRally": "Hajrá, fiúk! Zentai vér nem válik vízzé!",
     "cryFire": "Tűz! Az Istenért!",
     "cryHit": "Talált! Süllyed!",
-    "cryBoard": "Kardot elő, magyar kalózok!",
+    "cryBoard": "Kardot elő, magyar betyárok!",
     "cryVictory": "Győztünk! Haza megyünk, Anikóhoz!",
     "cryDefeat": "Vészhelyzet! Vitorlát bontsunk!"
   },
@@ -247,7 +250,7 @@
   },
   "goods": {
     "food": "Élelem",
-    "rum": "Rum",
+    "rum": "Pálinka",
     "sugar": "Cukor",
     "tobacco": "Dohány",
     "cloth": "Vászon",
@@ -257,34 +260,41 @@
   },
   "backstory": {
     "title": "Pegya legendája",
-    "paragraph1": "Zenta, 1678. A Tisza partján született Pegya halászember volt, mint apja és nagyapja. Fürge eszével, bátor szívével és soha nem unalmas nyelvével tűnt ki a faluból. A török-Habsburg villongások idején egy éjszaka portyázók támadtak a tanyára — Pegya megvédte Anikót, a molnár lányát, de a házuk leégett.",
-    "paragraph2": "Menekültek hónapokig nyugatra, Triesztig, onnan hajóra szálltak. A hajó útközben eltévedt és Pegya pár hónap múlva már a Karib-tengeren dobogott. Két kislány született a hosszú úton: Csillag, akinek szeme úgy csillog mint az éjszakai égbolt, és Boróka, aki olyan makacs mint a borókafa.",
-    "paragraph3": "Pegya matróznak állt egy spanyol hajón, de a kapitány kicsalta a bérét. Egy viharos éjjel Pegya átvette a hajót, és kitűzte rá a saját zászlaját: piros-kék sárga sáv, közepén egy napraforgó. A Karib-tengeren ezóta senki sem mer ujjat húzni a zentai kalózzal.",
-    "paragraph4": "Anikó és a lányok egy elhagyott tanyán várnak rá a Karib-tenger partján — Pegya Zentának keresztelte. Innen indul minden kalandra, ide tér meg minden csata után. Ez a játék az ő története.",
+    "paragraph1": "Zenta, 1678. Amikor a Teremtő egy csapással elárasztotta a Pannon-medencét, a Tisza és a Duna összeomlott, és Bácska, Bánság, Szerémség, Szlavónia dombjai szigetekké váltak. Pegya halászember volt a zentai löszháton, Anikó pedig a molnár lánya. A portyázó oszmán hadak egy éjjel felgyújtották a tanyát — Pegya megvédte családját.",
+    "paragraph2": "Hajóra szálltak egy ismeretlen irányba. A Pannon-tenger forog és csalóka, a hátságok közötti sekély vizek kiszámíthatatlanok. Hónapokig hányódtak, két kislány született útközben: Csillag, akinek szeme úgy csillog mint az éjszakai égbolt, és Boróka, aki olyan makacs mint a borókafa.",
+    "paragraph3": "Pegya matrózként szolgált egy sváb kapitány hajóján, de az kicsalta a bérét. Egy viharos éjjel Pegya átvette a hajót, és kitűzte rá a saját zászlaját: piros-kék-sárga sáv, közepén egy napraforgó. A Pannon-tengeren senki sem mer többé ujjat húzni a zentai betyárral.",
+    "paragraph4": "Anikó és a lányok a zentai szigeten várnak rá — a löszhát, ahol apja halászott, most kis sziget a vízben. Innen indul minden kalandra Pegya, ide tér meg minden csata után. Ez az ő története.",
     "begin": "Induljon a kaland!"
   },
   "ports": {
-    "szabadka": { "flavor": "A Bácska szíve — nagy piac, még nagyobb nyelv." },
-    "ujvidek": { "flavor": "Az angol koronagyarmat fővárosa. Cifra épületek, cifrább politika." },
-    "topolya": { "flavor": "Cukorültetvények és izgága telepesek." },
-    "nagybecskerek": { "flavor": "Gabonaraktárak, borospincék — ha megrakod a hajót, Angliáig húz." },
-    "zombor": { "flavor": "Spanyol kormányzó, aranylánc, gyanakvás. Itt senki se bízik senkiben." },
-    "pancsova": { "flavor": "Ágyúmester-iskola — ha van pénzed, itt tanulhatsz tüzelni." },
-    "versec": { "flavor": "A spanyol erőd árnyékában cukornád nő — és összeesküvés." },
-    "kikinda": { "flavor": "Rumgyár, matrózok, szerelmespárok. A levegő is részegít." },
-    "obecse": { "flavor": "Fűszerraktár. A paprikapor a szemedbe kerül mielőtt kialkudnád az árát." },
-    "apatin": { "flavor": "Halászkikötő lett spanyol raktárbázis. Lőpor, hordók, veszély." },
-    "magyarkanizsa": { "flavor": "Vászonszövők és magyar parasztlányok — oldott holland pénzzel." },
-    "fehertemplom": { "flavor": "Dohányültetvények, fehér falak, fekete szívek." },
-    "temerin": { "flavor": "A spanyol főkikötő. Itt kötnek ki az ezüst-flották." },
-    "szenttamas": { "flavor": "Kis város, nagy szövőüzem." },
-    "palics": { "flavor": "A kedvenc kis üdülőhely. Itt ritkán lőnek, gyakran táncolnak." },
-    "ada": { "flavor": "Francia posztó, francia illatok — Pegya itt vesz Anikónak kendőt." },
-    "torokbecse": { "flavor": "Francia rum-gyártmány. A helyi kocsmáros Pegya régi barátja." },
-    "csoka": { "flavor": "Fűszer, láp, moszkitók. Kicsi de értékes." },
-    "kula": { "flavor": "Holland posztós bódék és alig titkolt csempészet." },
-    "martonos": { "flavor": "Holland lőporraktár — óvatosan a pipával!" },
-    "horgos": { "flavor": "Kalóz-tanya: itt nem kérdezik, honnan jöttél." },
-    "zenta": { "flavor": "Pegya otthona. Anikó főzi a paprikást, Csillag és Boróka játszik a kiserdőben." }
+    "szeged": { "flavor": "Az északi vízhatár. Paprika, halászbárkák, piac ahol mindenki alkuszik." },
+    "szabadka": { "flavor": "Bácska szíve — nagy piac, nagyobb nyelv. A Bácska-kapuja." },
+    "magyarkanizsa": { "flavor": "Tiszai halászok és sós fürdők. Itt gyógyul a tengerész." },
+    "zenta": { "flavor": "Pegya otthona. Anikó paprikást főz, Csillag és Boróka a kukoricásban játszik." },
+    "topolya": { "flavor": "Kenderföldek, szőlőkertek — a nyárfa alatt cimbalmozik az öreg." },
+    "obecse": { "flavor": "Óbecse nagy kikötő — búza, méz és magyar makacsság rakománya." },
+    "baja": { "flavor": "Halászléváros. A bunyevácok kenderkötelet és vásznat árulnak." },
+    "zombor": { "flavor": "Bunyevác ispán palotája. A katolikus templom tornya a víz fölött." },
+    "apatin": { "flavor": "Sváb telepesek építette hajógyár — itt a legolcsóbb a hajójavítás." },
+    "hodsag": { "flavor": "Kis sváb város — kenyér és bor mint Bajorországban." },
+    "verbasz": { "flavor": "Sváb vászonszövők. Az asszonyok szigorúbbak mint a kapitányok." },
+    "nagybecskerek": { "flavor": "A Bánság sváb fővárosa. Ágyúöntöde, nyersanyagkereskedés." },
+    "kikinda": { "flavor": "Sváb malmok, gabonaraktárak. Itt raknak fel Bécsnek." },
+    "eszek": { "flavor": "Szlavónia sváb erődvárosa. A fővárosok főkapitánya." },
+    "kishegyes": { "flavor": "Tót falu a bácskai hátságon. Szilvapálinka, hegyimesék." },
+    "petroc": { "flavor": "Tót evangélikusok fonóháza — a legfinomabb vászon." },
+    "vukovar": { "flavor": "Szerémségi rác város. A Dráva-torkolat őrszeme." },
+    "ujvidek": { "flavor": "A rác püspökség székhelye — és a vízre néző nagybazár." },
+    "petervarad": { "flavor": "Pétervárad sziklavára — a rácok földi mennyországa. Ágyúk mindenfelé." },
+    "karloca": { "flavor": "A rác patriarchátus otthona. Kolostorok és összeesküvések." },
+    "titel": { "flavor": "Crnagorac kalóz-tanya a Tisza-torkolat fölött. Itt nem kérdezik, honnan jössz." },
+    "temesvar": { "flavor": "Bánság oláh fővárosa. Gazdag, büszke, sűrű falakkal." },
+    "lugos": { "flavor": "Oláh kisváros, ezüstbányák lábánál. Nehéz fegyverek." },
+    "versec": { "flavor": "Oláh borvidék — a pincékben több a történet mint a dugó." },
+    "fehertemplom": { "flavor": "A Bánság déli csücske. Fehér falak, fekete szívek." },
+    "szalankemen": { "flavor": "Oszmán határőrvár. A Tisza-Duna torok fölött vigyáz." },
+    "pancsova": { "flavor": "Oszmán kikötő — a szultán karavánja itt vesz lőport." },
+    "zimony": { "flavor": "Zimony — a Száva-Duna torokvidéke. Oszmán vám, sok adó." },
+    "nandorfehervar": { "flavor": "Nándorfehérvár — a déli határvár, a fél-hold alatt. Hős Hunyadi emléke." }
   }
 }

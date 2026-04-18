@@ -32,11 +32,11 @@ export function PortMenu(): JSX.Element | null {
     );
   }, [portId]);
 
-  const hostile = port.nation !== 'pirate' && port.nation !== playerNation;
+  const hostile = port.nation !== 'crnagorac' && port.nation !== playerNation;
   const canHunt = fragments >= 4;
 
   const startLand = () => {
-    if (port.nation !== 'pirate') {
+    if (port.nation !== 'crnagorac') {
       useGame.getState().changeReputation(port.nation, -20);
     }
     useGame.getState().leavePort();

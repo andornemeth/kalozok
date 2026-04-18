@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Kalózok – Pegya, a Karib-tenger ura! Vajdasági ihletésű, mobilbarát kalandjáték.",
+  "description": "Kalózok – Pegya, a Pannon tenger betyára. Mobilbarát kalandjáték az elárasztott Pannon-medencén.",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",

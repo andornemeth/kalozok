@@ -41,7 +41,7 @@ export class NavalBattleScene extends Phaser.Scene {
   private ammo: Ammo = 'round';
   private wind = new WindSystem();
   private enemyKind: EnemyKind = 'pirate';
-  private enemyNation: NationId = 'pirate';
+  private enemyNation: NationId = 'crnagorac';
   private ended = false;
   private elapsed = 0;
   private hintLabel!: Phaser.GameObjects.Text;
@@ -59,7 +59,7 @@ export class NavalBattleScene extends Phaser.Scene {
 
   init(data: { enemyKind?: EnemyKind; enemyNation?: NationId; enemySilhouette?: ShipSilhouette }): void {
     this.enemyKind = data.enemyKind ?? 'pirate';
-    this.enemyNation = data.enemyNation ?? 'pirate';
+    this.enemyNation = data.enemyNation ?? 'crnagorac';
     this.ended = false;
     this.elapsed = 0;
   }
@@ -470,7 +470,7 @@ export class NavalBattleScene extends Phaser.Scene {
     g.adjustMorale(+8);
     g.unlockAchievement('first-blood');
     g.recordShipDefeated();
-    if (this.enemyNation !== 'pirate') g.changeReputation(this.enemyNation, -8);
+    if (this.enemyNation !== 'crnagorac') g.changeReputation(this.enemyNation, -8);
     checkQuestCompletion(useGame.getState(), (_id, title, reward) =>
       bus.emit('toast', { message: `Cél teljesült: ${title} (+${reward}g)`, kind: 'good' }),
     );

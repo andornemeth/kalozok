@@ -20,9 +20,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Kalózok – Pegya, a Karib-tenger ura!',
+        name: 'Kalózok – Pegya, a Pannon tenger betyára',
         short_name: 'Pegya',
-        description: 'Pegya, a zentai kalóz kalandjai a Karib-tengeren – vajdasági ízekkel, magyar szívvel.',
+        description: 'Pegya, a zentai betyár kalandjai az elárasztott Pannon-medencén – magyar szívvel.',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',

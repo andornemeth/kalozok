@@ -10,7 +10,7 @@ type EnemyKind = 'pirate' | 'navy' | 'merchant';
 
 export class EncounterScene extends Phaser.Scene {
   private enemyKind: EnemyKind = 'pirate';
-  private enemyNation: NationId = 'pirate';
+  private enemyNation: NationId = 'crnagorac';
   private enemySilhouette: ShipSilhouette = 'medium';
 
   constructor() {
@@ -19,7 +19,7 @@ export class EncounterScene extends Phaser.Scene {
 
   init(data: { enemyKind?: EnemyKind; enemyNation?: NationId; enemySilhouette?: ShipSilhouette }): void {
     this.enemyKind = data.enemyKind ?? 'pirate';
-    this.enemyNation = data.enemyNation ?? 'pirate';
+    this.enemyNation = data.enemyNation ?? 'crnagorac';
     this.enemySilhouette = data.enemySilhouette ?? 'medium';
   }
 
@@ -66,13 +66,17 @@ export class EncounterScene extends Phaser.Scene {
     });
 
     const kindLabel =
-      this.enemyKind === 'pirate' ? 'KALÓZHAJÓ' : this.enemyKind === 'navy' ? 'HADIHAJÓ' : 'KERESKEDŐ';
-    const nationLabel =
-      this.enemyNation === 'pirate' ? 'szabadkalóz'
-      : this.enemyNation === 'england' ? 'angol'
-      : this.enemyNation === 'spain' ? 'spanyol'
-      : this.enemyNation === 'france' ? 'francia'
-      : 'holland';
+      this.enemyKind === 'pirate' ? 'BETYÁRHAJÓ' : this.enemyKind === 'navy' ? 'HADIHAJÓ' : 'KERESKEDŐ';
+    const nationLabel = ({
+      magyar: 'magyar',
+      rac: 'rác',
+      bunyevac: 'bunyevác',
+      olah: 'oláh',
+      tot: 'tót',
+      oszman: 'oszmán',
+      svab: 'sváb',
+      crnagorac: 'crnagorac',
+    } as const)[this.enemyNation];
 
     this.add.text(cx, 36, 'HAJÓ LÁTÓTÁVOLSÁGBAN', {
       fontFamily: '"Press Start 2P"', fontSize: '12px', color: '#e0b24f',

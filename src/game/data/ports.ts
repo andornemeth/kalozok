@@ -1,6 +1,14 @@
 import type { GoodId } from './goods';
 
-export type NationId = 'england' | 'spain' | 'france' | 'netherlands' | 'pirate';
+export type NationId =
+  | 'magyar'
+  | 'rac'
+  | 'bunyevac'
+  | 'olah'
+  | 'tot'
+  | 'oszman'
+  | 'svab'
+  | 'crnagorac';
 
 export interface Port {
   id: string;
@@ -15,43 +23,57 @@ export interface Port {
   flavorKey?: string;
 }
 
-// Karib világ logikai mérete: 1600 × 1100. A földrajz ugyanaz, de Pegya a
-// maga képére kereszteli át a kikötőket — minden helynév a Délvidékről való.
+// A Pannon-tenger alternatív földrajz: az elárasztott Pannon-medencében
+// a hátságok és kisebb hegyek a szigetek. A térkép a Bánság, Bácska,
+// Szerémség és Szlavónia vidéke.
 export const WORLD_W = 1600;
 export const WORLD_H = 1100;
 
 export const PORTS: readonly Port[] = [
-  // Angol koronagyarmat — "Bácska szíve"
-  { id: 'szabadka', name: 'Szabadka', nation: 'england', x: 580, y: 110, size: 'medium', specialty: 'tobacco', scarcity: 'spice', flavorKey: 'ports.szabadka.flavor' },
-  { id: 'ujvidek', name: 'Újvidék', nation: 'england', x: 720, y: 470, size: 'capital', specialty: 'tobacco', scarcity: 'spice', flavorKey: 'ports.ujvidek.flavor' },
-  { id: 'topolya', name: 'Topolya', nation: 'england', x: 770, y: 490, size: 'medium', specialty: 'sugar', scarcity: 'gunpowder', flavorKey: 'ports.topolya.flavor' },
-  { id: 'nagybecskerek', name: 'Nagybecskerek', nation: 'england', x: 1450, y: 620, size: 'large', specialty: 'sugar', scarcity: 'cloth', flavorKey: 'ports.nagybecskerek.flavor' },
+  // === Magyarok — Bácska északi része és Tisza-part ===
+  { id: 'szeged', name: 'Szeged', nation: 'magyar', x: 650, y: 90, size: 'capital', specialty: 'tobacco', scarcity: 'spice', flavorKey: 'ports.szeged.flavor' },
+  { id: 'szabadka', name: 'Szabadka', nation: 'magyar', x: 540, y: 170, size: 'capital', specialty: 'cloth', scarcity: 'gunpowder', flavorKey: 'ports.szabadka.flavor' },
+  { id: 'magyarkanizsa', name: 'Magyarkanizsa', nation: 'magyar', x: 720, y: 180, size: 'medium', specialty: 'sugar', scarcity: 'cannons', flavorKey: 'ports.magyarkanizsa.flavor' },
+  { id: 'zenta', name: 'Zenta', nation: 'magyar', x: 700, y: 260, size: 'medium', specialty: 'rum', scarcity: 'food', homePort: true, flavorKey: 'ports.zenta.flavor' },
+  { id: 'topolya', name: 'Topolya', nation: 'magyar', x: 560, y: 260, size: 'medium', specialty: 'tobacco', scarcity: 'rum', flavorKey: 'ports.topolya.flavor' },
+  { id: 'obecse', name: 'Óbecse', nation: 'magyar', x: 720, y: 380, size: 'large', specialty: 'food', scarcity: 'cloth', flavorKey: 'ports.obecse.flavor' },
 
-  // Spanyol birodalom — gazdag, gyanakvó, arannyal teli
-  { id: 'zombor', name: 'Zombor', nation: 'spain', x: 540, y: 320, size: 'capital', specialty: 'tobacco', scarcity: 'cloth', flavorKey: 'ports.zombor.flavor' },
-  { id: 'pancsova', name: 'Pancsova', nation: 'spain', x: 820, y: 430, size: 'large', specialty: 'sugar', scarcity: 'cannons', flavorKey: 'ports.pancsova.flavor' },
-  { id: 'versec', name: 'Versec', nation: 'spain', x: 1050, y: 480, size: 'capital', specialty: 'sugar', scarcity: 'food', flavorKey: 'ports.versec.flavor' },
-  { id: 'kikinda', name: 'Kikinda', nation: 'spain', x: 1180, y: 450, size: 'large', specialty: 'rum', scarcity: 'cannons', flavorKey: 'ports.kikinda.flavor' },
-  { id: 'obecse', name: 'Óbecse', nation: 'spain', x: 900, y: 800, size: 'capital', specialty: 'spice', scarcity: 'food', flavorKey: 'ports.obecse.flavor' },
-  { id: 'apatin', name: 'Apatin', nation: 'spain', x: 720, y: 880, size: 'large', specialty: 'spice', scarcity: 'gunpowder', flavorKey: 'ports.apatin.flavor' },
-  { id: 'magyarkanizsa', name: 'Magyarkanizsa', nation: 'spain', x: 1050, y: 770, size: 'large', specialty: 'cloth', scarcity: 'food', flavorKey: 'ports.magyarkanizsa.flavor' },
-  { id: 'fehertemplom', name: 'Fehértemplom', nation: 'spain', x: 1200, y: 790, size: 'medium', specialty: 'tobacco', scarcity: 'cannons', flavorKey: 'ports.fehertemplom.flavor' },
-  { id: 'temerin', name: 'Temerin', nation: 'spain', x: 200, y: 540, size: 'capital', specialty: 'sugar', scarcity: 'cannons', flavorKey: 'ports.temerin.flavor' },
-  { id: 'szenttamas', name: 'Szenttamás', nation: 'spain', x: 320, y: 580, size: 'medium', specialty: 'cloth', scarcity: 'gunpowder', flavorKey: 'ports.szenttamas.flavor' },
-  { id: 'palics', name: 'Palics', nation: 'spain', x: 480, y: 200, size: 'small', specialty: 'tobacco', scarcity: 'rum', flavorKey: 'ports.palics.flavor' },
+  // === Bunyevácok — nyugati Bácska, katolikus délszlávok ===
+  { id: 'baja', name: 'Baja', nation: 'bunyevac', x: 260, y: 130, size: 'medium', specialty: 'food', scarcity: 'spice', flavorKey: 'ports.baja.flavor' },
+  { id: 'zombor', name: 'Zombor', nation: 'bunyevac', x: 340, y: 260, size: 'capital', specialty: 'cloth', scarcity: 'gunpowder', flavorKey: 'ports.zombor.flavor' },
 
-  // Francia gyarmatok — divatos, elegáns
-  { id: 'ada', name: 'Ada', nation: 'france', x: 940, y: 470, size: 'medium', specialty: 'cloth', scarcity: 'tobacco', flavorKey: 'ports.ada.flavor' },
-  { id: 'torokbecse', name: 'Törökbecse', nation: 'france', x: 1390, y: 570, size: 'large', specialty: 'rum', scarcity: 'gunpowder', flavorKey: 'ports.torokbecse.flavor' },
-  { id: 'csoka', name: 'Csóka', nation: 'france', x: 1500, y: 900, size: 'small', specialty: 'spice', scarcity: 'food', flavorKey: 'ports.csoka.flavor' },
+  // === Svábok — német telepesek a Bácskában és Bánságban ===
+  { id: 'apatin', name: 'Apatin', nation: 'svab', x: 230, y: 360, size: 'large', specialty: 'food', scarcity: 'cannons', flavorKey: 'ports.apatin.flavor' },
+  { id: 'hodsag', name: 'Hódság', nation: 'svab', x: 340, y: 400, size: 'medium', specialty: 'cloth', scarcity: 'spice', flavorKey: 'ports.hodsag.flavor' },
+  { id: 'verbasz', name: 'Verbász', nation: 'svab', x: 580, y: 420, size: 'medium', specialty: 'rum', scarcity: 'food', flavorKey: 'ports.verbasz.flavor' },
+  { id: 'nagybecskerek', name: 'Nagybecskerek', nation: 'svab', x: 1040, y: 380, size: 'large', specialty: 'cannons', scarcity: 'rum', flavorKey: 'ports.nagybecskerek.flavor' },
+  { id: 'kikinda', name: 'Kikinda', nation: 'svab', x: 950, y: 230, size: 'medium', specialty: 'food', scarcity: 'tobacco', flavorKey: 'ports.kikinda.flavor' },
+  { id: 'eszek', name: 'Eszék', nation: 'svab', x: 130, y: 540, size: 'capital', specialty: 'cannons', scarcity: 'rum', flavorKey: 'ports.eszek.flavor' },
 
-  // Holland kereskedőposztok
-  { id: 'kula', name: 'Kúla', nation: 'netherlands', x: 1180, y: 730, size: 'medium', specialty: 'cloth', scarcity: 'rum', flavorKey: 'ports.kula.flavor' },
-  { id: 'martonos', name: 'Martonos', nation: 'netherlands', x: 1310, y: 470, size: 'small', specialty: 'gunpowder', scarcity: 'sugar', flavorKey: 'ports.martonos.flavor' },
+  // === Tótok — szlovák falvak középső Bácskában ===
+  { id: 'kishegyes', name: 'Kishegyes', nation: 'tot', x: 620, y: 320, size: 'small', specialty: 'gunpowder', scarcity: 'sugar', flavorKey: 'ports.kishegyes.flavor' },
+  { id: 'petroc', name: 'Petrőc', nation: 'tot', x: 550, y: 480, size: 'small', specialty: 'cloth', scarcity: 'cannons', flavorKey: 'ports.petroc.flavor' },
 
-  // Kalóz-tanyák — Pegya otthona Zenta
-  { id: 'horgos', name: 'Horgos', nation: 'pirate', x: 660, y: 250, size: 'medium', specialty: 'rum', scarcity: 'cloth', flavorKey: 'ports.horgos.flavor' },
-  { id: 'zenta', name: 'Zenta', nation: 'pirate', x: 920, y: 410, size: 'medium', specialty: 'rum', scarcity: 'food', homePort: true, flavorKey: 'ports.zenta.flavor' },
+  // === Rácok — Szerémség, orthodox szerbek ===
+  { id: 'vukovar', name: 'Vukovár', nation: 'rac', x: 330, y: 610, size: 'medium', specialty: 'tobacco', scarcity: 'cannons', flavorKey: 'ports.vukovar.flavor' },
+  { id: 'ujvidek', name: 'Újvidék', nation: 'rac', x: 740, y: 540, size: 'capital', specialty: 'cloth', scarcity: 'food', flavorKey: 'ports.ujvidek.flavor' },
+  { id: 'petervarad', name: 'Pétervárad', nation: 'rac', x: 790, y: 580, size: 'large', specialty: 'cannons', scarcity: 'spice', flavorKey: 'ports.petervarad.flavor' },
+  { id: 'karloca', name: 'Karlóca', nation: 'rac', x: 810, y: 640, size: 'medium', specialty: 'rum', scarcity: 'tobacco', flavorKey: 'ports.karloca.flavor' },
+
+  // === Crnagoracok — szabad hegyi rablók, kalóz-tanya ===
+  { id: 'titel', name: 'Titel', nation: 'crnagorac', x: 920, y: 480, size: 'medium', specialty: 'rum', scarcity: 'cloth', flavorKey: 'ports.titel.flavor' },
+
+  // === Oláhok — Bánság keleti hegyei ===
+  { id: 'temesvar', name: 'Temesvár', nation: 'olah', x: 1340, y: 300, size: 'capital', specialty: 'tobacco', scarcity: 'cloth', flavorKey: 'ports.temesvar.flavor' },
+  { id: 'lugos', name: 'Lugos', nation: 'olah', x: 1470, y: 400, size: 'medium', specialty: 'sugar', scarcity: 'gunpowder', flavorKey: 'ports.lugos.flavor' },
+  { id: 'versec', name: 'Versec', nation: 'olah', x: 1170, y: 570, size: 'medium', specialty: 'spice', scarcity: 'food', flavorKey: 'ports.versec.flavor' },
+  { id: 'fehertemplom', name: 'Fehértemplom', nation: 'olah', x: 1110, y: 780, size: 'small', specialty: 'gunpowder', scarcity: 'sugar', flavorKey: 'ports.fehertemplom.flavor' },
+
+  // === Oszmánok — délvidéki török helyőrségek ===
+  { id: 'szalankemen', name: 'Szalánkemén', nation: 'oszman', x: 870, y: 700, size: 'small', specialty: 'spice', scarcity: 'rum', flavorKey: 'ports.szalankemen.flavor' },
+  { id: 'pancsova', name: 'Pancsova', nation: 'oszman', x: 920, y: 830, size: 'medium', specialty: 'spice', scarcity: 'food', flavorKey: 'ports.pancsova.flavor' },
+  { id: 'zimony', name: 'Zimony', nation: 'oszman', x: 820, y: 910, size: 'large', specialty: 'cloth', scarcity: 'tobacco', flavorKey: 'ports.zimony.flavor' },
+  { id: 'nandorfehervar', name: 'Nándorfehérvár', nation: 'oszman', x: 860, y: 990, size: 'capital', specialty: 'cannons', scarcity: 'food', flavorKey: 'ports.nandorfehervar.flavor' },
 ];
 
 export const HOME_PORT_ID = 'zenta';
@@ -65,9 +87,27 @@ export function homePort(): Port {
 }
 
 export function nationColor(n: NationId): number {
-  return { england: 0xc0392b, spain: 0xf2c94c, france: 0x3470d6, netherlands: 0xff8c42, pirate: 0x1c1c1c }[n];
+  return ({
+    magyar: 0xc0392b,       // piros
+    rac: 0x3470d6,          // kék
+    bunyevac: 0x4f6ba6,     // világoskék
+    olah: 0xe0b24f,         // sárga
+    tot: 0xc6d5ee,          // fehér-kék
+    oszman: 0x2d5a2d,       // oszmán zöld
+    svab: 0x1c1c1c,         // fekete
+    crnagorac: 0x7a2e0e,    // sötétvörös
+  } as const)[n];
 }
 
 export function nationFlagAccent(n: NationId): number {
-  return { england: 0xfbf5e3, spain: 0xc0392b, france: 0xfbf5e3, netherlands: 0x1c4587, pirate: 0xfbf5e3 }[n];
+  return ({
+    magyar: 0x88e07b,       // zöld
+    rac: 0xc0392b,          // piros
+    bunyevac: 0xfbf5e3,     // fehér
+    olah: 0x3470d6,         // kék
+    tot: 0x3470d6,          // kék
+    oszman: 0xfbf5e3,       // fehér félhold
+    svab: 0xe0b24f,         // arany
+    crnagorac: 0xfbf5e3,    // fehér koponya
+  } as const)[n];
 }

@@ -59,11 +59,15 @@ export class PreloadScene extends Phaser.Scene {
     this.makeWaveTile('wave-tile');
     this.makeWaveCrest('wave-crest');
 
-    this.makePortMarker('port-eng', 0xc0392b, 0xfbf5e3, 'cross');
-    this.makePortMarker('port-esp', 0xf2c94c, 0xc0392b, 'castle');
-    this.makePortMarker('port-fra', 0x3470d6, 0xfbf5e3, 'fleur');
-    this.makePortMarker('port-ned', 0xff8c42, 0xfbf5e3, 'lion');
-    this.makePortMarker('port-pir', 0x1c1c1c, 0xfbf5e3, 'skull');
+    // Pannon-tenger nemzetei
+    this.makePortMarker('port-magyar',    0xc0392b, 0x88e07b, 'cross');    // piros+zöld, magyar kereszt
+    this.makePortMarker('port-rac',       0x3470d6, 0xc0392b, 'castle');   // kék+piros, rác kastély
+    this.makePortMarker('port-bunyevac',  0x4f6ba6, 0xfbf5e3, 'fleur');    // kék+fehér, katolikus liliom
+    this.makePortMarker('port-olah',      0xe0b24f, 0x3470d6, 'lion');     // sárga+kék, oláh oroszlán
+    this.makePortMarker('port-tot',       0xc6d5ee, 0x3470d6, 'cross');    // fehér+kék, tót kereszt
+    this.makePortMarker('port-oszman',    0x2d5a2d, 0xfbf5e3, 'crescent'); // zöld+fehér, oszmán félhold
+    this.makePortMarker('port-svab',      0x1c1c1c, 0xe0b24f, 'castle');   // fekete+arany, sváb vár
+    this.makePortMarker('port-crnagorac', 0x7a2e0e, 0xfbf5e3, 'skull');    // sötétvörös+fehér, crnagorac koponya
 
     this.makeFortIcon('fort-icon');
     this.makeAnchorIcon('anchor-icon');
@@ -477,7 +481,7 @@ export class PreloadScene extends Phaser.Scene {
     g.destroy();
   }
 
-  private makePortMarker(key: string, color: number, accent: number, kind: 'cross' | 'fleur' | 'castle' | 'lion' | 'skull'): void {
+  private makePortMarker(key: string, color: number, accent: number, kind: 'cross' | 'fleur' | 'castle' | 'lion' | 'skull' | 'crescent'): void {
     const w = 32;
     const h = 36;
     const g = this.add.graphics();
@@ -502,6 +506,12 @@ export class PreloadScene extends Phaser.Scene {
     } else if (kind === 'lion') {
       g.fillCircle(23, 5, 2);
       g.fillRect(21, 6, 4, 2);
+    } else if (kind === 'crescent') {
+      // Félhold: telt kör + rajta a háttérszín sarló-kivágás
+      g.fillCircle(23, 5, 2.5);
+      g.fillStyle(color, 1);
+      g.fillCircle(24, 4.5, 2);
+      g.fillStyle(accent, 1);
     } else {
       g.fillCircle(23, 4, 2);
       g.fillRect(22, 6, 1, 2);

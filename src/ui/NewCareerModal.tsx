@@ -11,14 +11,14 @@ interface Props {
   onStart: () => void;
 }
 
-const NATIONS: NationId[] = ['england', 'spain', 'france', 'netherlands', 'pirate'];
+const NATIONS: NationId[] = ['magyar', 'rac', 'bunyevac', 'olah', 'tot', 'oszman', 'svab', 'crnagorac'];
 const ERAS = [1660, 1680, 1700, 1720];
 const DIFFS: DifficultyId[] = ['easy', 'normal', 'hard'];
 
 export function NewCareerModal({ onClose, onStart }: Props): JSX.Element {
   const { t } = useTranslation();
   const [name, setName] = useState('Pegya');
-  const [nation, setNation] = useState<NationId>('pirate');
+  const [nation, setNation] = useState<NationId>('magyar');
   const [era, setEra] = useState<number>(1680);
   const [difficulty, setDifficulty] = useState<DifficultyId>('normal');
   const [daily, setDaily] = useState(false);
@@ -46,7 +46,7 @@ export function NewCareerModal({ onClose, onStart }: Props): JSX.Element {
         />
         <p className="text-[10px] opacity-50 mb-3 italic">{t('career.hint')}</p>
         <div className="text-xs mb-1 opacity-80">{t('career.nation')}</div>
-        <div className="grid grid-cols-3 gap-1 mb-3">
+        <div className="grid grid-cols-4 gap-1 mb-3">
           {NATIONS.map((n) => (
             <button
               key={n}

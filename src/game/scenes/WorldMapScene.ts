@@ -29,45 +29,52 @@ interface Enemy {
   followOffset?: Phaser.Math.Vector2;
 }
 
+// Pannon-tenger: az elárasztott Pannon-medencében csak a hátságok és
+// kisebb hegységek állnak ki a vízből. A portok saját tanyájukon
+// vannak (isLand port-csatornák adják hozzá), a nagy szigetek a
+// Fruška gora, Versec-hegység, Deliblát, Papuk és a kisebb löszhátak.
 const ISLAND_SEEDS: { cx: number; cy: number; rx: number; ry: number; jitter?: number; hilly?: boolean }[] = [
-  // Cuba — hosszan elnyúló nyugatról keletre
-  { cx: 460, cy: 320, rx: 110, ry: 50, hilly: true },
-  { cx: 620, cy: 350, rx: 130, ry: 50, hilly: true },
-  { cx: 800, cy: 410, rx: 120, ry: 60, hilly: true },
-  // Hispaniola
-  { cx: 990, cy: 460, rx: 130, ry: 60, hilly: true },
-  // Puerto Rico
-  { cx: 1175, cy: 450, rx: 50, ry: 28 },
-  // Jamaica
-  { cx: 745, cy: 480, rx: 60, ry: 28 },
-  // Bahamas (több kis sziget)
-  { cx: 580, cy: 230, rx: 26, ry: 18 },
-  { cx: 660, cy: 250, rx: 36, ry: 22 },
-  { cx: 740, cy: 220, rx: 28, ry: 18 },
-  { cx: 820, cy: 270, rx: 22, ry: 16 },
-  // Florida
-  { cx: 470, cy: 180, rx: 70, ry: 110, hilly: false },
-  // Yucatan / Mexico
-  { cx: 290, cy: 530, rx: 110, ry: 80, hilly: true },
-  { cx: 180, cy: 460, rx: 90, ry: 110, hilly: true },
-  // Lesser Antilles (lánc)
-  { cx: 1310, cy: 460, rx: 18, ry: 14 },
-  { cx: 1340, cy: 510, rx: 16, ry: 12 },
-  { cx: 1370, cy: 560, rx: 18, ry: 14 },
-  { cx: 1410, cy: 600, rx: 18, ry: 14 },
-  { cx: 1440, cy: 630, rx: 22, ry: 16 },
-  { cx: 1470, cy: 680, rx: 18, ry: 14 },
-  // Trinidad
-  { cx: 1430, cy: 820, rx: 36, ry: 22 },
-  // Curaçao + ABC szigetek
-  { cx: 1180, cy: 730, rx: 26, ry: 14 },
-  { cx: 1100, cy: 720, rx: 18, ry: 10 },
-  // Tierra Firme — hosszú déli partszakasz
-  { cx: 720, cy: 920, rx: 220, ry: 70, hilly: true },
-  { cx: 980, cy: 900, rx: 190, ry: 60, hilly: true },
-  { cx: 1200, cy: 850, rx: 130, ry: 60, hilly: true },
-  { cx: 1370, cy: 880, rx: 100, ry: 50, hilly: true },
-  { cx: 1500, cy: 920, rx: 110, ry: 70, hilly: true },
+  // Fruška gora (Tarcal) — hosszú kelet-nyugati hegyhát Szerémségben
+  { cx: 760, cy: 580, rx: 180, ry: 34, hilly: true },
+  { cx: 580, cy: 590, rx: 120, ry: 30, hilly: true },
+  // Papuk / Szlavóniai-középhegység — Eszéktől északra
+  { cx: 150, cy: 640, rx: 120, ry: 40, hilly: true },
+  { cx: 280, cy: 680, rx: 80, ry: 30, hilly: true },
+  // Versec-hegység / Délkeleti-Bánság
+  { cx: 1180, cy: 620, rx: 70, ry: 40, hilly: true },
+  { cx: 1250, cy: 650, rx: 50, ry: 30, hilly: true },
+  // Deliblát — homokbuckák és kis dombok
+  { cx: 1050, cy: 750, rx: 110, ry: 40, hilly: false },
+  { cx: 1160, cy: 760, rx: 60, ry: 30, hilly: false },
+  // Titeli plató
+  { cx: 920, cy: 500, rx: 40, ry: 28, hilly: true },
+  // Zentai-löszhát — Pegya otthonát tartja a vízből
+  { cx: 700, cy: 270, rx: 50, ry: 32, hilly: false },
+  // Telecskai-hát — középső Bácska
+  { cx: 580, cy: 340, rx: 90, ry: 28, hilly: false },
+  { cx: 640, cy: 370, rx: 60, ry: 22, hilly: false },
+  // Báni-hát — Szabadkai homokhátság
+  { cx: 520, cy: 200, rx: 70, ry: 25 },
+  // Bácskai északi hátak Baja körül
+  { cx: 270, cy: 170, rx: 55, ry: 28 },
+  // Szeged-környéki homokhátság
+  { cx: 630, cy: 120, rx: 60, ry: 25 },
+  // Temesi-hátság — Bánság belseje
+  { cx: 1250, cy: 340, rx: 90, ry: 30, hilly: true },
+  { cx: 1380, cy: 370, rx: 70, ry: 28, hilly: true },
+  // Lugos-Karánsebes kishegyek
+  { cx: 1470, cy: 450, rx: 60, ry: 30, hilly: true },
+  // Eszék-sziget
+  { cx: 120, cy: 530, rx: 50, ry: 25 },
+  // Vukovár-sziget — Dráva-torkolat magasabb része
+  { cx: 320, cy: 600, rx: 55, ry: 25 },
+  // Nándorfehérvár-Zimony sziklasziget — Száva-Duna-torok
+  { cx: 840, cy: 960, rx: 80, ry: 40, hilly: true },
+  { cx: 920, cy: 900, rx: 50, ry: 28 },
+  // Apró láncszigetek a Duna mentén (régi ártéri dombok)
+  { cx: 450, cy: 440, rx: 28, ry: 18 },
+  { cx: 820, cy: 420, rx: 24, ry: 16 },
+  { cx: 1000, cy: 540, rx: 26, ry: 18 },
 ];
 
 export class WorldMapScene extends Phaser.Scene {
@@ -305,7 +312,16 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private portTexture(n: NationId): string {
-    return ({ england: 'port-eng', spain: 'port-esp', france: 'port-fra', netherlands: 'port-ned', pirate: 'port-pir' } as const)[n];
+    return ({
+      magyar: 'port-magyar',
+      rac: 'port-rac',
+      bunyevac: 'port-bunyevac',
+      olah: 'port-olah',
+      tot: 'port-tot',
+      oszman: 'port-oszman',
+      svab: 'port-svab',
+      crnagorac: 'port-crnagorac',
+    } as const)[n];
   }
 
   private spawnPlayer(): void {
@@ -351,8 +367,8 @@ export class WorldMapScene extends Phaser.Scene {
       kind === 'merchant' ? (Math.random() < 0.6 ? 'medium' : 'large') :
       kind === 'navy' ? (Math.random() < 0.5 ? 'medium' : 'large') :
       (Math.random() < 0.7 ? 'small' : 'medium');
-    const nation: NationId = kind === 'pirate' ? 'pirate'
-      : (['england', 'spain', 'france', 'netherlands'] as NationId[])[Math.floor(Math.random() * 4)]!;
+    const nation: NationId = kind === 'pirate' ? 'crnagorac'
+      : (['magyar', 'rac', 'bunyevac', 'olah', 'tot', 'oszman', 'svab'] as NationId[])[Math.floor(Math.random() * 7)]!;
     const pos = this.findOpenSeaSpot();
     if (!pos) return null;
     const ship = new ShipGraphic(this, pos.x, pos.y, { tone, silhouette, scale: 0.24 });

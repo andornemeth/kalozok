@@ -1,9 +1,9 @@
 {
   "app": {
     "title": "Pirates",
-    "titleFull": "Pirates – Pegya, Master of the Caribbean!",
-    "subtitle": "Pegya, the pirate of Zenta",
-    "tagline": "A Vojvodinian heart on the Caribbean Sea — sail, cannon, paprika."
+    "titleFull": "Pirates – Pegya, Outlaw of the Pannonian Sea",
+    "subtitle": "Pegya, the outlaw of Zenta",
+    "tagline": "A flooded Pannonian basin, sail and gunpowder — with Hungarian heart."
   },
   "title": {
     "new": "New career",
@@ -43,14 +43,17 @@
     "easy": "Greenhorn",
     "normal": "Sea wolf",
     "hard": "Nightmare",
-    "hint": "Default: Pegya, the pirate of Zenta"
+    "hint": "Default: Pegya, the outlaw of Zenta"
   },
   "nations": {
-    "england": "England",
-    "spain": "Spain",
-    "france": "France",
-    "netherlands": "Netherlands",
-    "pirate": "Freebooter"
+    "magyar": "Hungarians",
+    "rac": "Serbs (Rácok)",
+    "bunyevac": "Bunyevci",
+    "olah": "Romanians (Oláhok)",
+    "tot": "Slovaks (Tótok)",
+    "oszman": "Ottomans",
+    "svab": "Swabians",
+    "crnagorac": "Montenegrins"
   },
   "hud": {
     "gold": "gold",
@@ -75,12 +78,12 @@
   "port": {
     "welcome": "Welcome to {{port}}, captain!",
     "welcomeHome": "You're home, Pegya! {{port}} embraces you.",
-    "tavern": "Tavern",
+    "tavern": "Csárda",
     "merchant": "Merchant",
     "shipyard": "Shipwright",
-    "governor": "Governor",
+    "governor": "Ispán",
     "tanya": "Homestead (Anikó)",
-    "leave": "Back to the sea",
+    "leave": "Back to the water",
     "jail": "Jail"
   },
   "tanya": {
@@ -97,7 +100,7 @@
     "anikoName": "Anikó",
     "csillagName": "Csillag",
     "borokaName": "Boróka",
-    "letterIntro": "\"My dear Pegya! The girls asked about the sea again today. Csillag learned a new song, Boróka watches over the cat. Take care of yourself — we wait for you.\" — Anikó",
+    "letterIntro": "\"My dear Pegya! The girls asked about the water again today. Csillag learned a new song, Boróka watches over the cat. Take care of yourself — we wait for you.\" — Anikó",
     "farewell": "I must go, my love.",
     "familyStatus": "Family bond: {{total}}/100"
   },
@@ -106,7 +109,7 @@
     "hire": "Recruit ({{cost}} gold)",
     "rumors": "Listen to rumors",
     "drink": "Drink",
-    "noCrew": "No willing sailors today.",
+    "noCrew": "No willing hands today.",
     "hired": "{{count}} new sailors joined.",
     "rumor": "A drunken sailor whispers…",
     "flavor": "The innkeeper offers a bowl of paprika stew. A cimbalom plays by the hearth."
@@ -145,13 +148,13 @@
     "upgradeCannons": "More cannons ({{cost}})",
     "upgradeSails": "Better sails ({{cost}})",
     "newShip": "New ship",
-    "repaired": "Ship is shipshape — gleams like Danube water.",
+    "repaired": "Ship is shipshape — gleams like Tisza water.",
     "hullStatus": "Hull: {{current}}/{{max}}",
     "sailStatus": "Sail: {{current}}/{{max}}",
     "breakdown": "Hull repair: {{hull}}g · Sail patch: {{sail}}g"
   },
   "governor": {
-    "title": "Governor's palace",
+    "title": "The Ispán's palace",
     "mission": "Take a mission",
     "letterOfMarque": "Letter of marque",
     "reward": "Reward",
@@ -160,7 +163,7 @@
     "dance": "Dance"
   },
   "naval": {
-    "title": "Naval battle",
+    "title": "Water battle",
     "roundShot": "Round shot",
     "chainShot": "Chain shot",
     "grapeShot": "Grape shot",
@@ -175,7 +178,7 @@
     "cryRally": "Come on, lads! Zenta blood never runs like water!",
     "cryFire": "Fire! For God's sake!",
     "cryHit": "Hit! She's sinking!",
-    "cryBoard": "Swords out, Hungarian pirates!",
+    "cryBoard": "Swords out, Hungarian outlaws!",
     "cryVictory": "We won! Home to Anikó!",
     "cryDefeat": "Emergency! Unfurl the sails!"
   },
@@ -247,44 +250,51 @@
   },
   "goods": {
     "food": "Food",
-    "rum": "Rum",
+    "rum": "Pálinka",
     "sugar": "Sugar",
     "tobacco": "Tobacco",
-    "cloth": "Cloth",
+    "cloth": "Linen",
     "spice": "Paprika",
     "cannons": "Cannons",
     "gunpowder": "Gunpowder"
   },
   "backstory": {
     "title": "Pegya's Legend",
-    "paragraph1": "Zenta, 1678. Born on the banks of the Tisza, Pegya was a fisherman like his father and grandfather. Quick-witted, brave of heart, and never silent of tongue, he stood out in the village. During the Ottoman-Habsburg clashes, raiders struck the farm one night — Pegya protected Anikó, the miller's daughter, but their house burned down.",
-    "paragraph2": "They fled west for months, to Trieste, and boarded a ship. The ship lost its way, and within months Pegya was walking the deck on the Caribbean Sea. Two daughters were born on the long voyage: Csillag, whose eyes shine like the night sky, and Boróka, as stubborn as a juniper tree.",
-    "paragraph3": "Pegya signed on as a sailor with a Spanish captain, but the captain cheated him out of his wages. On a stormy night, Pegya took over the ship and raised his own flag: red, blue, and yellow bands, with a sunflower in the middle. Since then, no one dares cross the pirate of Zenta on the Caribbean.",
-    "paragraph4": "Anikó and the girls wait on an abandoned homestead by the Caribbean shore — Pegya christened it Zenta. From here he sails to every adventure, and returns after every battle. This is his story.",
+    "paragraph1": "Zenta, 1678. When the Creator flooded the Pannonian basin, the Tisza and Danube collapsed, and the hills of Bácska, Bánság, Szerémség, Szlavónia became islands. Pegya was a fisherman on the Zenta ridge, Anikó the miller's daughter. Raiding Ottoman troops torched the farm one night — Pegya defended his family.",
+    "paragraph2": "They boarded a ship bound for the unknown. The Pannonian Sea is treacherous, and the shallow waters between the ridges are unpredictable. They drifted for months, and two daughters were born along the way: Csillag, whose eyes shine like the night sky, and Boróka, as stubborn as a juniper tree.",
+    "paragraph3": "Pegya signed on as a sailor under a Swabian captain, but the captain cheated him out of his wages. On a stormy night, Pegya took over the ship and raised his own flag: red, blue, and yellow bands, with a sunflower at the center. No one on the Pannonian Sea dares cross the outlaw of Zenta anymore.",
+    "paragraph4": "Anikó and the girls wait on the Zenta island — the loess ridge where his father fished, now a small island in the water. From here Pegya sails to every adventure, and returns after every battle. This is his story.",
     "begin": "Let the adventure begin!"
   },
   "ports": {
-    "szabadka": { "flavor": "The heart of Bácska — a big market, a bigger tongue." },
-    "ujvidek": { "flavor": "Capital of the English colony. Ornate buildings, even more ornate politics." },
-    "topolya": { "flavor": "Sugar plantations and restless settlers." },
-    "nagybecskerek": { "flavor": "Grain stores, wine cellars — load up your ship and she'll sail to England." },
-    "zombor": { "flavor": "Spanish governor, golden chains, suspicion. No one trusts anyone here." },
-    "pancsova": { "flavor": "School of cannon masters — if you have coin, you learn to shoot here." },
-    "versec": { "flavor": "In the shadow of the Spanish fort, sugarcane grows — and conspiracy." },
-    "kikinda": { "flavor": "Rum distillery, sailors, lovers. The very air is intoxicating." },
-    "obecse": { "flavor": "Spice warehouse. The paprika dust will hit your eyes before you bargain the price." },
-    "apatin": { "flavor": "A fishing port turned Spanish supply base. Powder, barrels, danger." },
-    "magyarkanizsa": { "flavor": "Linen weavers and Hungarian peasant girls — their purses loose with Dutch coin." },
-    "fehertemplom": { "flavor": "Tobacco fields, white walls, black hearts." },
-    "temerin": { "flavor": "The Spanish main port. Silver fleets dock here." },
-    "szenttamas": { "flavor": "A small town with a big weaving mill." },
-    "palics": { "flavor": "The beloved little resort. They rarely fire here, often dance." },
-    "ada": { "flavor": "French textiles, French perfumes — Pegya buys kerchiefs here for Anikó." },
-    "torokbecse": { "flavor": "French rum distillery. The innkeeper is an old friend of Pegya's." },
-    "csoka": { "flavor": "Spice, swamp, mosquitoes. Small but valuable." },
-    "kula": { "flavor": "Dutch cloth stalls and barely-hidden smuggling." },
-    "martonos": { "flavor": "Dutch powder magazine — careful with the pipe!" },
-    "horgos": { "flavor": "Pirate haven: no one asks where you came from." },
-    "zenta": { "flavor": "Pegya's home. Anikó cooks paprikás, Csillag and Boróka play in the small forest." }
+    "szeged": { "flavor": "The northern water-border. Paprika, fishing boats, a market where everyone haggles." },
+    "szabadka": { "flavor": "The heart of Bácska — big market, bigger tongue. Gate of Bácska." },
+    "magyarkanizsa": { "flavor": "Tisza fishermen and salt baths. Sailors heal here." },
+    "zenta": { "flavor": "Pegya's home. Anikó cooks paprikás, Csillag and Boróka play in the cornfield." },
+    "topolya": { "flavor": "Hemp fields and vineyards — the old man plays the cimbalom under the poplar." },
+    "obecse": { "flavor": "Óbecse, a big port — cargo of wheat, honey, Hungarian stubbornness." },
+    "baja": { "flavor": "Fish-stew town. Bunyevci sell hemp rope and linen." },
+    "zombor": { "flavor": "Bunyevac ispán's palace. Catholic church spire above the water." },
+    "apatin": { "flavor": "Swabian-built shipyard — cheapest repair on the sea." },
+    "hodsag": { "flavor": "Small Swabian town — bread and wine like in Bavaria." },
+    "verbasz": { "flavor": "Swabian linen weavers. The women are stricter than the captains." },
+    "nagybecskerek": { "flavor": "Swabian capital of Bánság. Cannon foundry, raw materials trade." },
+    "kikinda": { "flavor": "Swabian mills, grain warehouses. They load up for Vienna here." },
+    "eszek": { "flavor": "Slavonia's Swabian fortress city. Commander of commanders." },
+    "kishegyes": { "flavor": "Slovak village on the Bácska ridge. Plum brandy, mountain tales." },
+    "petroc": { "flavor": "Slovak Lutheran weaving house — finest linen around." },
+    "vukovar": { "flavor": "Szerémség Serb town. Sentinel of the Drava mouth." },
+    "ujvidek": { "flavor": "Seat of the Serb bishopric — and the grand bazaar overlooking the water." },
+    "petervarad": { "flavor": "Pétervárad's rock fortress — earthly paradise of the Serbs. Cannons everywhere." },
+    "karloca": { "flavor": "Home of the Serbian patriarchate. Monasteries and conspiracies." },
+    "titel": { "flavor": "Montenegrin (crnagorac) pirate haven above the Tisza mouth. No one asks where you came from." },
+    "temesvar": { "flavor": "Banat's Romanian capital. Rich, proud, thick-walled." },
+    "lugos": { "flavor": "Romanian small town, at the foot of silver mines. Heavy weapons." },
+    "versec": { "flavor": "Romanian wine country — cellars hold more stories than corks." },
+    "fehertemplom": { "flavor": "Banat's southern tip. White walls, black hearts." },
+    "szalankemen": { "flavor": "Ottoman border fort. Watches over the Tisza-Danube mouth." },
+    "pancsova": { "flavor": "Ottoman port — the sultan's caravan buys powder here." },
+    "zimony": { "flavor": "Zimony — the Sava-Danube mouth. Ottoman customs, heavy taxes." },
+    "nandorfehervar": { "flavor": "Nándorfehérvár — the southern border fortress, under the crescent. Memory of heroic Hunyadi." }
   }
 }

@@ -23,8 +23,9 @@ export function GovernorDialog({ port, onClose }: Props): JSX.Element {
     const rng = mulberry32(hashString(`${port.id}:gov:${Math.floor(days / 3)}`));
     const target = PORTS[Math.floor(rng() * PORTS.length)]!;
     const reward = 300 + Math.floor(rng() * 700);
-    const enemies: NationId[] = ['spain', 'france', 'england', 'netherlands'];
-    const enemyNation = enemies.filter((n) => n !== port.nation)[Math.floor(rng() * 3)]!;
+    const enemies: NationId[] = ['magyar', 'rac', 'bunyevac', 'olah', 'tot', 'oszman', 'svab'];
+    const candidates = enemies.filter((n) => n !== port.nation);
+    const enemyNation = candidates[Math.floor(rng() * candidates.length)]!;
     return { target, reward, enemyNation };
   }, [port, days]);
 
@@ -56,7 +57,7 @@ export function GovernorDialog({ port, onClose }: Props): JSX.Element {
     }
   };
 
-  const standing = port.nation === 'pirate' ? 0 : rep[port.nation as Exclude<NationId, 'pirate'>];
+  const standing = port.nation === 'crnagorac' ? 0 : rep[port.nation as Exclude<NationId, 'crnagorac'>];
   const friendly = nation === port.nation || standing > 20;
 
   return (

@@ -11,7 +11,16 @@ interface Props {
 }
 
 function nationHex(n: Port['nation']): string {
-  return ({ england: '#c0392b', spain: '#f2c94c', france: '#3470d6', netherlands: '#ff8c42', pirate: '#1c1c1c' } as const)[n];
+  return ({
+    magyar: '#c0392b',
+    rac: '#3470d6',
+    bunyevac: '#4f6ba6',
+    olah: '#e0b24f',
+    tot: '#c6d5ee',
+    oszman: '#2d5a2d',
+    svab: '#1c1c1c',
+    crnagorac: '#7a2e0e',
+  } as const)[n];
 }
 
 export function FastTravelDialog({ onClose }: Props): JSX.Element {

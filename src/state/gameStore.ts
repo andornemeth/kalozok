@@ -39,11 +39,24 @@ export interface FamilyState {
 }
 
 export interface Reputation {
-  england: number;
-  spain: number;
-  france: number;
-  netherlands: number;
+  magyar: number;
+  rac: number;
+  bunyevac: number;
+  olah: number;
+  tot: number;
+  oszman: number;
+  svab: number;
 }
+
+export const EMPTY_REPUTATION: Reputation = {
+  magyar: 0,
+  rac: 0,
+  bunyevac: 0,
+  olah: 0,
+  tot: 0,
+  oszman: 0,
+  svab: 0,
+};
 
 export interface Flags {
   tutorialMove: boolean;
@@ -135,7 +148,7 @@ const initialQuests: QuestProgress = {
 
 const initialCareer: CareerState = {
   name: '',
-  nation: 'pirate',
+  nation: 'magyar',
   era: 1680,
   difficulty: 'normal',
   daysAtSea: 0,
@@ -172,7 +185,7 @@ export const useGame = create<GameState>()(
       family: initialFamily,
       ship: initialShip,
       cargo: emptyCargo(),
-      reputation: { england: 0, spain: 0, france: 0, netherlands: 0 },
+      reputation: { ...EMPTY_REPUTATION },
       morale: 70,
       food: 40,
       treasureFragments: 0,
@@ -201,7 +214,7 @@ export const useGame = create<GameState>()(
           family: { ...initialFamily },
           ship: { ...initialShip },
           cargo: emptyCargo(),
-          reputation: { england: 0, spain: 0, france: 0, netherlands: 0 },
+          reputation: { ...EMPTY_REPUTATION },
           morale: 70,
           food: 40,
           treasureFragments: 0,
@@ -239,7 +252,7 @@ export const useGame = create<GameState>()(
 
       changeReputation: (n, delta) =>
         set((s) => {
-          if (n === 'pirate') return s;
+          if (n === 'crnagorac') return s;
           const current = s.reputation[n];
           const next = Math.max(-100, Math.min(100, current + delta));
           return { reputation: { ...s.reputation, [n]: next } };
@@ -376,7 +389,7 @@ export const useGame = create<GameState>()(
     {
       name: 'kalozok:game',
       storage: createJSONStorage(() => localStorage),
-      version: 4,
+      version: 5,
       migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Record<string, unknown>;
         if (!s.quests) s.quests = initialQuests;
@@ -386,15 +399,23 @@ export const useGame = create<GameState>()(
         if (version < 3) {
           s.worldPos = null;
         }
-        // v4: Pegya átnevezte a kikötőket vajdasági nevekre; régi port-ID-k
-        // inkompatibilisek. Töröljük a currentPortId-t és a visitedPorts-t,
-        // és hozzáadjuk a család state-et.
         if (version < 4) {
           s.currentPortId = null;
           const q = (s.quests as QuestProgress | undefined) ?? initialQuests;
           s.quests = { ...q, visitedPorts: [] };
           s.family = { ...initialFamily };
           s.worldPos = null;
+        }
+        // v5: Pannon-tenger váltás — új nemzetlista, új port-ID-k, új
+        // reputation kulcsok. Minden térkép-függő állapotot nullázunk.
+        if (version < 5) {
+          s.currentPortId = null;
+          const q = (s.quests as QuestProgress | undefined) ?? initialQuests;
+          s.quests = { ...q, visitedPorts: [] };
+          s.worldPos = null;
+          s.reputation = { ...EMPTY_REPUTATION };
+          const c = (s.career as Partial<CareerState> | undefined) ?? {};
+          s.career = { ...initialCareer, ...c, nation: 'magyar' };
         }
         if (!s.family) s.family = { ...initialFamily };
         return s as unknown as GameState;
