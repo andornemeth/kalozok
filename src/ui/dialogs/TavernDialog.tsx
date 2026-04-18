@@ -12,11 +12,19 @@ interface Props {
 }
 
 const HU_RUMORS = [
-  'Egy Tortuga felé tartó teherhajó cukrot szállít…',
-  'A spanyol flotta Portobelóban gyülekezik.',
-  'Egy kincsesláda fele a Bridgetowni öbölben pihen.',
-  'A kormányzó lánya új udvarlót keres.',
-  'Állítólag egy Man o\' War vesztegel Havanna közelében.',
+  'Egy sváb kereskedő Nagybecskerekről vászonnal megrakodva indul Szegedre…',
+  'Az oszmán flotta Nándorfehérvárnál gyülekezik — lőport visznek Pancsovára.',
+  'Pétervárad alatt egy süllyedt rác hajó aranyát keresi mindenki.',
+  'Az ispán lánya Temesváron új udvarlót keres. Táncolni kell tudni!',
+  'Állítólag egy török gálya rekedt Zimony ködében — zsákmányra érett.',
+  'Titelnél crnagorac hajók keresik a magyar betyárokat — barátra vagy ellenségre, nem dönthettek.',
+  'A karlócai kolostor pincéjében régi kincs — egy szerzetes elcsevegett róla mézsör fölött.',
+  'Rózsa Sándor pap lányát egy oláh gróf rabolta el — a hiteles emberek fülébe suttogták.',
+  'Anikó új mondókát tanított Csillagnak — Zentán hallottak róla a halászok.',
+  'Az apatini hajóácsok kedvezményt adnak — csak zárt szájnak, nyitott erszénynek.',
+  'A bajai halászok néma halat fogtak — a plébános megáldotta, mégse beszél.',
+  'Eszéken sváb szolga lopta meg a kormányzó pipáját — keresett ember.',
+  'Újvidéken egy nyomtató műhely ásott ki egy régi latin térképet — mutatja a Pannon-tenger alatti elvitt szigeteket.',
 ];
 
 export function TavernDialog({ port, onClose }: Props): JSX.Element {
@@ -71,7 +79,7 @@ export function TavernDialog({ port, onClose }: Props): JSX.Element {
         </button>
       </div>
       <p className="text-xs opacity-75 mb-3">
-        Itt mindenki ismer mindenkit — egy pohár rumért bármit eladnak neked.
+        {t('tavern.flavor')}
       </p>
       <div className="flex flex-col gap-2">
         <button className="pixel-btn" onClick={hire} disabled={maxHire <= 0}>

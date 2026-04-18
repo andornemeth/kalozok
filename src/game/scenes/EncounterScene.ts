@@ -59,9 +59,11 @@ export class EncounterScene extends Phaser.Scene {
     const enemy = new ShipGraphic(this, cx, cy + 30, { tone, silhouette: this.enemySilhouette, scale: 1.6 });
     enemy.setDepth(5);
     enemy.update(0, 0, 16);
+    // Nemzeti zászló az árbocon, a hajóval együtt lobog
+    const flag = this.add.image(cx - 2, cy - 80, `flag-${this.enemyNation}`).setOrigin(0, 1).setScale(2).setDepth(6);
     this.tweens.add({
-      targets: enemy.container,
-      y: cy + 38,
+      targets: [enemy.container, flag],
+      y: '+=8',
       yoyo: true, repeat: -1, duration: 1900, ease: 'Sine.inOut',
     });
 

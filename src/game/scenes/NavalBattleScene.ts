@@ -39,6 +39,8 @@ interface CombatShip {
   aiCooldown: number;
   aiCommitUntil: number;
   aiSkill: number;
+  nation: NationId;
+  flag?: Phaser.GameObjects.Image;
 }
 
 // =========================================================================
@@ -224,7 +226,7 @@ export class NavalBattleScene extends Phaser.Scene {
       hull: gs.ship.hull, sail: gs.ship.sail, crew: gs.ship.crew,
       hullMax: stats.hullMax, sailMax: stats.sailMax, crewMax: stats.crewMax,
       cannons: stats.cannons,
-    }, 0.06 * stats.speed, 1.0);
+    }, 0.06 * stats.speed, 1.0, gs.career.nation);
 
     const eStats = this.pickEnemyStats();
     const tone: ShipTone = this.enemyKind === 'pirate' ? 'enemy' : this.enemyKind === 'navy' ? 'navy' : 'merchant';
@@ -232,7 +234,7 @@ export class NavalBattleScene extends Phaser.Scene {
       this.enemyKind === 'merchant' ? 0.45 :
       this.enemyKind === 'navy' ? 0.80 :
       0.60;
-    this.enemy = this.makeShip(tone, eStats.silhouette, eStats.shipClass, ARENA_W / 2 + 220, ARENA_H / 2 - 80, Math.PI, eStats, 0.05 * SHIPS[eStats.shipClass].speed, aiSkill);
+    this.enemy = this.makeShip(tone, eStats.silhouette, eStats.shipClass, ARENA_W / 2 + 220, ARENA_H / 2 - 80, Math.PI, eStats, 0.05 * SHIPS[eStats.shipClass].speed, aiSkill, this.enemyNation);
   }
 
   private pickEnemyStats(): {
@@ -284,15 +286,17 @@ export class NavalBattleScene extends Phaser.Scene {
     },
     baseSpeed: number,
     aiSkill: number,
+    nation: NationId,
   ): CombatShip {
     const ship = new ShipGraphic(this, x, y, { tone, silhouette, scale: 0.95 });
     ship.setDepth(5);
     ship.update(heading, this.wind.state.dir);
+    const flag = this.add.image(x, y - 90, `flag-${nation}`).setDepth(6).setOrigin(0, 1).setScale(1.4);
     return {
       ship, tone, silhouette, shipClass, heading, baseSpeed,
       desiredHeading: heading,
       portReload: 0, starboardReload: 0, aiCooldown: 800,
-      aiCommitUntil: 0, aiSkill,
+      aiCommitUntil: 0, aiSkill, nation, flag,
       ...stats,
     };
   }
@@ -718,6 +722,10 @@ export class NavalBattleScene extends Phaser.Scene {
     const ny = Phaser.Math.Clamp(s.ship.y + Math.sin(s.heading) * speed * dt, 80, ARENA_H - 80);
     s.ship.setPosition(nx, ny);
     s.ship.update(s.heading, this.wind.state.dir, dt);
+    // Zászló mindig a fő árbocon lobog
+    if (s.flag) {
+      s.flag.setPosition(nx - 1, ny - 72);
+    }
   }
 
   private aiUpdate(s: CombatShip, dt: number): void {

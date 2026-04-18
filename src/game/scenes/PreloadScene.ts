@@ -118,7 +118,94 @@ export class PreloadScene extends Phaser.Scene {
     this.makePaprikaRibbon('paprika-ribbon');
     this.makeHomeStar('home-star');
 
+    // Nemzeti zászlók (hajóárbocra kerülő, 24×18 px)
+    this.makeNationFlag('flag-magyar', 'magyar');
+    this.makeNationFlag('flag-rac', 'rac');
+    this.makeNationFlag('flag-bunyevac', 'bunyevac');
+    this.makeNationFlag('flag-olah', 'olah');
+    this.makeNationFlag('flag-tot', 'tot');
+    this.makeNationFlag('flag-oszman', 'oszman');
+    this.makeNationFlag('flag-svab', 'svab');
+    this.makeNationFlag('flag-crnagorac', 'crnagorac');
+
     this.scene.start('World');
+  }
+
+  private makeNationFlag(key: string, nation: 'magyar'|'rac'|'bunyevac'|'olah'|'tot'|'oszman'|'svab'|'crnagorac'): void {
+    const w = 24;
+    const h = 18;
+    const g = this.add.graphics();
+    // Árbocrúd
+    g.fillStyle(0x2a1a10, 1);
+    g.fillRect(0, 0, 2, h);
+    // Zászló téglalap háttere — egységes kontúr
+    g.fillStyle(0x04141a, 0.5);
+    g.fillRect(2, 1, w - 3, h - 4);
+
+    const drawHorizontalStripes = (colors: number[]) => {
+      const stripeH = Math.floor((h - 4) / colors.length);
+      for (let i = 0; i < colors.length; i++) {
+        g.fillStyle(colors[i]!, 1);
+        g.fillRect(3, 2 + i * stripeH, w - 5, stripeH);
+      }
+    };
+
+    if (nation === 'magyar') {
+      drawHorizontalStripes([0xc0392b, 0xfbf5e3, 0x4a8b3d]); // piros-fehér-zöld
+    } else if (nation === 'rac') {
+      drawHorizontalStripes([0xc0392b, 0x3470d6, 0xfbf5e3]); // piros-kék-fehér (pánszláv)
+    } else if (nation === 'olah') {
+      // Függőleges sávok: kék-sárga-piros
+      const colors = [0x3470d6, 0xe0b24f, 0xc0392b];
+      const stripeW = Math.floor((w - 5) / colors.length);
+      for (let i = 0; i < colors.length; i++) {
+        g.fillStyle(colors[i]!, 1);
+        g.fillRect(3 + i * stripeW, 2, stripeW, h - 4);
+      }
+    } else if (nation === 'tot') {
+      drawHorizontalStripes([0xfbf5e3, 0x3470d6, 0xc0392b]); // fehér-kék-piros
+    } else if (nation === 'svab') {
+      drawHorizontalStripes([0x1c1c1c, 0xc0392b, 0xe0b24f]); // fekete-piros-arany
+    } else if (nation === 'bunyevac') {
+      // Kék alap + fehér latin kereszt
+      g.fillStyle(0x4f6ba6, 1);
+      g.fillRect(3, 2, w - 5, h - 4);
+      g.fillStyle(0xfbf5e3, 1);
+      g.fillRect(11, 3, 3, h - 6); // függőleges
+      g.fillRect(6, 6, 13, 3);     // vízszintes
+    } else if (nation === 'oszman') {
+      // Zöld alap + fehér félhold
+      g.fillStyle(0x2d5a2d, 1);
+      g.fillRect(3, 2, w - 5, h - 4);
+      g.fillStyle(0xfbf5e3, 1);
+      g.fillCircle(12, h / 2, 4);
+      g.fillStyle(0x2d5a2d, 1);
+      g.fillCircle(14, h / 2 - 0.5, 3.5); // sarló-vágás
+      // Csillag a félhold mellett
+      g.fillStyle(0xfbf5e3, 1);
+      g.fillRect(17, h / 2 - 1, 2, 2);
+    } else if (nation === 'crnagorac') {
+      // Fekete alap + fehér koponya (stilizált)
+      g.fillStyle(0x1c1c1c, 1);
+      g.fillRect(3, 2, w - 5, h - 4);
+      g.fillStyle(0xfbf5e3, 1);
+      // Koponya-fej
+      g.fillCircle(12, 8, 4);
+      // Szemüregek
+      g.fillStyle(0x1c1c1c, 1);
+      g.fillCircle(10, 7, 1);
+      g.fillCircle(14, 7, 1);
+      // Csont alatta
+      g.fillStyle(0xfbf5e3, 1);
+      g.fillRect(8, 12, 8, 1.5);
+    }
+
+    // Zászló szegély
+    g.lineStyle(1, 0x04141a, 0.6);
+    g.strokeRect(2, 1, w - 3, h - 4);
+
+    g.generateTexture(key, w, h);
+    g.destroy();
   }
 
   // ---------- Vajdasági motívumok ----------

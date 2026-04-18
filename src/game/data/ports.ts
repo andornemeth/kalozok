@@ -33,18 +33,24 @@ export const PORTS: readonly Port[] = [
   // === Magyarok — Bácska északi része és Tisza-part ===
   { id: 'szeged', name: 'Szeged', nation: 'magyar', x: 650, y: 90, size: 'capital', specialty: 'tobacco', scarcity: 'spice', flavorKey: 'ports.szeged.flavor' },
   { id: 'szabadka', name: 'Szabadka', nation: 'magyar', x: 540, y: 170, size: 'capital', specialty: 'cloth', scarcity: 'gunpowder', flavorKey: 'ports.szabadka.flavor' },
+  { id: 'horgos', name: 'Horgos', nation: 'magyar', x: 620, y: 130, size: 'small', specialty: 'food', scarcity: 'cannons', flavorKey: 'ports.horgos.flavor' },
   { id: 'magyarkanizsa', name: 'Magyarkanizsa', nation: 'magyar', x: 720, y: 180, size: 'medium', specialty: 'sugar', scarcity: 'cannons', flavorKey: 'ports.magyarkanizsa.flavor' },
   { id: 'zenta', name: 'Zenta', nation: 'magyar', x: 700, y: 260, size: 'medium', specialty: 'rum', scarcity: 'food', homePort: true, flavorKey: 'ports.zenta.flavor' },
+  { id: 'ada', name: 'Ada', nation: 'magyar', x: 740, y: 310, size: 'small', specialty: 'rum', scarcity: 'gunpowder', flavorKey: 'ports.ada.flavor' },
+  { id: 'mohol', name: 'Mohol', nation: 'magyar', x: 750, y: 350, size: 'small', specialty: 'food', scarcity: 'spice', flavorKey: 'ports.mohol.flavor' },
   { id: 'topolya', name: 'Topolya', nation: 'magyar', x: 560, y: 260, size: 'medium', specialty: 'tobacco', scarcity: 'rum', flavorKey: 'ports.topolya.flavor' },
   { id: 'obecse', name: 'Óbecse', nation: 'magyar', x: 720, y: 380, size: 'large', specialty: 'food', scarcity: 'cloth', flavorKey: 'ports.obecse.flavor' },
 
   // === Bunyevácok — nyugati Bácska, katolikus délszlávok ===
   { id: 'baja', name: 'Baja', nation: 'bunyevac', x: 260, y: 130, size: 'medium', specialty: 'food', scarcity: 'spice', flavorKey: 'ports.baja.flavor' },
+  { id: 'bezdan', name: 'Bezdán', nation: 'bunyevac', x: 170, y: 210, size: 'small', specialty: 'food', scarcity: 'cannons', flavorKey: 'ports.bezdan.flavor' },
   { id: 'zombor', name: 'Zombor', nation: 'bunyevac', x: 340, y: 260, size: 'capital', specialty: 'cloth', scarcity: 'gunpowder', flavorKey: 'ports.zombor.flavor' },
 
   // === Svábok — német telepesek a Bácskában és Bánságban ===
   { id: 'apatin', name: 'Apatin', nation: 'svab', x: 230, y: 360, size: 'large', specialty: 'food', scarcity: 'cannons', flavorKey: 'ports.apatin.flavor' },
   { id: 'hodsag', name: 'Hódság', nation: 'svab', x: 340, y: 400, size: 'medium', specialty: 'cloth', scarcity: 'spice', flavorKey: 'ports.hodsag.flavor' },
+  { id: 'palanka', name: 'Palánka', nation: 'svab', x: 480, y: 480, size: 'small', specialty: 'gunpowder', scarcity: 'sugar', flavorKey: 'ports.palanka.flavor' },
+  { id: 'futak', name: 'Futak', nation: 'svab', x: 680, y: 500, size: 'small', specialty: 'cloth', scarcity: 'tobacco', flavorKey: 'ports.futak.flavor' },
   { id: 'verbasz', name: 'Verbász', nation: 'svab', x: 580, y: 420, size: 'medium', specialty: 'rum', scarcity: 'food', flavorKey: 'ports.verbasz.flavor' },
   { id: 'nagybecskerek', name: 'Nagybecskerek', nation: 'svab', x: 1040, y: 380, size: 'large', specialty: 'cannons', scarcity: 'rum', flavorKey: 'ports.nagybecskerek.flavor' },
   { id: 'kikinda', name: 'Kikinda', nation: 'svab', x: 950, y: 230, size: 'medium', specialty: 'food', scarcity: 'tobacco', flavorKey: 'ports.kikinda.flavor' },
@@ -52,25 +58,33 @@ export const PORTS: readonly Port[] = [
 
   // === Tótok — szlovák falvak középső Bácskában ===
   { id: 'kishegyes', name: 'Kishegyes', nation: 'tot', x: 620, y: 320, size: 'small', specialty: 'gunpowder', scarcity: 'sugar', flavorKey: 'ports.kishegyes.flavor' },
+  { id: 'feketics', name: 'Feketics', nation: 'tot', x: 540, y: 330, size: 'small', specialty: 'sugar', scarcity: 'rum', flavorKey: 'ports.feketics.flavor' },
   { id: 'petroc', name: 'Petrőc', nation: 'tot', x: 550, y: 480, size: 'small', specialty: 'cloth', scarcity: 'cannons', flavorKey: 'ports.petroc.flavor' },
 
   // === Rácok — Szerémség, orthodox szerbek ===
   { id: 'vukovar', name: 'Vukovár', nation: 'rac', x: 330, y: 610, size: 'medium', specialty: 'tobacco', scarcity: 'cannons', flavorKey: 'ports.vukovar.flavor' },
+  { id: 'ujlak', name: 'Újlak', nation: 'rac', x: 300, y: 680, size: 'small', specialty: 'rum', scarcity: 'spice', flavorKey: 'ports.ujlak.flavor' },
+  { id: 'mitrovica', name: 'Mitrovica', nation: 'rac', x: 500, y: 700, size: 'medium', specialty: 'food', scarcity: 'gunpowder', flavorKey: 'ports.mitrovica.flavor' },
+  { id: 'ruma', name: 'Ruma', nation: 'rac', x: 640, y: 640, size: 'medium', specialty: 'tobacco', scarcity: 'rum', flavorKey: 'ports.ruma.flavor' },
   { id: 'ujvidek', name: 'Újvidék', nation: 'rac', x: 740, y: 540, size: 'capital', specialty: 'cloth', scarcity: 'food', flavorKey: 'ports.ujvidek.flavor' },
   { id: 'petervarad', name: 'Pétervárad', nation: 'rac', x: 790, y: 580, size: 'large', specialty: 'cannons', scarcity: 'spice', flavorKey: 'ports.petervarad.flavor' },
   { id: 'karloca', name: 'Karlóca', nation: 'rac', x: 810, y: 640, size: 'medium', specialty: 'rum', scarcity: 'tobacco', flavorKey: 'ports.karloca.flavor' },
 
-  // === Crnagoracok — szabad hegyi rablók, kalóz-tanya ===
+  // === Crnagoracok — szabad hegyi rablók, kalóz-tanyák ===
   { id: 'titel', name: 'Titel', nation: 'crnagorac', x: 920, y: 480, size: 'medium', specialty: 'rum', scarcity: 'cloth', flavorKey: 'ports.titel.flavor' },
+  { id: 'ersomlyo', name: 'Érsomlyó', nation: 'crnagorac', x: 1220, y: 630, size: 'small', specialty: 'gunpowder', scarcity: 'food', flavorKey: 'ports.ersomlyo.flavor' },
 
   // === Oláhok — Bánság keleti hegyei ===
+  { id: 'lippa', name: 'Lippa', nation: 'olah', x: 1280, y: 180, size: 'small', specialty: 'cloth', scarcity: 'rum', flavorKey: 'ports.lippa.flavor' },
   { id: 'temesvar', name: 'Temesvár', nation: 'olah', x: 1340, y: 300, size: 'capital', specialty: 'tobacco', scarcity: 'cloth', flavorKey: 'ports.temesvar.flavor' },
   { id: 'lugos', name: 'Lugos', nation: 'olah', x: 1470, y: 400, size: 'medium', specialty: 'sugar', scarcity: 'gunpowder', flavorKey: 'ports.lugos.flavor' },
+  { id: 'karansebes', name: 'Karánsebes', nation: 'olah', x: 1500, y: 500, size: 'small', specialty: 'cannons', scarcity: 'sugar', flavorKey: 'ports.karansebes.flavor' },
   { id: 'versec', name: 'Versec', nation: 'olah', x: 1170, y: 570, size: 'medium', specialty: 'spice', scarcity: 'food', flavorKey: 'ports.versec.flavor' },
   { id: 'fehertemplom', name: 'Fehértemplom', nation: 'olah', x: 1110, y: 780, size: 'small', specialty: 'gunpowder', scarcity: 'sugar', flavorKey: 'ports.fehertemplom.flavor' },
 
   // === Oszmánok — délvidéki török helyőrségek ===
   { id: 'szalankemen', name: 'Szalánkemén', nation: 'oszman', x: 870, y: 700, size: 'small', specialty: 'spice', scarcity: 'rum', flavorKey: 'ports.szalankemen.flavor' },
+  { id: 'alibunar', name: 'Alibunár', nation: 'oszman', x: 1050, y: 720, size: 'small', specialty: 'sugar', scarcity: 'cloth', flavorKey: 'ports.alibunar.flavor' },
   { id: 'pancsova', name: 'Pancsova', nation: 'oszman', x: 920, y: 830, size: 'medium', specialty: 'spice', scarcity: 'food', flavorKey: 'ports.pancsova.flavor' },
   { id: 'zimony', name: 'Zimony', nation: 'oszman', x: 820, y: 910, size: 'large', specialty: 'cloth', scarcity: 'tobacco', flavorKey: 'ports.zimony.flavor' },
   { id: 'nandorfehervar', name: 'Nándorfehérvár', nation: 'oszman', x: 860, y: 990, size: 'capital', specialty: 'cannons', scarcity: 'food', flavorKey: 'ports.nandorfehervar.flavor' },
