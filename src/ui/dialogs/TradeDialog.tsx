@@ -1,11 +1,28 @@
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useGame } from '@/state/gameStore';
 import { GOODS, type GoodId } from '@/game/data/goods';
 import { SHIPS } from '@/game/data/ships';
 import { priceFor, stockFor } from '@/game/systems/EconomySystem';
 import type { Port } from '@/game/data/ports';
+
+function Sparkline({ values, current }: { values: number[]; current: number }): JSX.Element {
+  const w = 64;
+  const h = 18;
+  const min = Math.min(...values, current);
+  const max = Math.max(...values, current);
+  const range = Math.max(1, max - min);
+  const step = w / Math.max(1, values.length - 1);
+  const pts = values.map((v, i) => `${i * step},${h - ((v - min) / range) * (h - 2) - 1}`).join(' ');
+  const cy = h - ((current - min) / range) * (h - 2) - 1;
+  return (
+    <svg width={w} height={h} className="inline-block">
+      <polyline points={pts} fill="none" stroke="rgba(251,245,227,0.55)" strokeWidth="1" />
+      <circle cx={w} cy={cy} r="2" fill="#e0b24f" />
+    </svg>
+  );
+}
 
 interface Props {
   port: Port;
@@ -30,6 +47,16 @@ export function TradeDialog({ port, onClose }: Props): JSX.Element {
 
   const prices = useMemo(() => new Map(GOODS.map((g) => [g.id, priceFor(port, g.id, days)])), [port, days]);
   const stocks = useMemo(() => new Map(GOODS.map((g) => [g.id, stockFor(port, g.id, days)])), [port, days]);
+  const history = useMemo(() => {
+    const map = new Map<GoodId, number[]>();
+    for (const g of GOODS) {
+      const arr: number[] = [];
+      for (let w = 8; w >= 1; w--) arr.push(priceFor(port, g.id, days - w * 7));
+      map.set(g.id, arr);
+    }
+    return map;
+  }, [port, days]);
+  const [expanded, setExpanded] = useState<GoodId | null>(null);
   const holdUsed = useMemo(() => GOODS.reduce((sum, g) => sum + cargo[g.id] * g.volume, 0), [cargo]);
   const holdMax = SHIPS[ship.class].hold;
 
@@ -99,7 +126,10 @@ export function TradeDialog({ port, onClose }: Props): JSX.Element {
           const max = maxBuy(g.id);
           return (
             <div key={g.id} className="py-2 border-b border-parchment-200/10">
-              <div className="flex items-center justify-between gap-2">
+              <div
+                className="flex items-center justify-between gap-2 cursor-pointer"
+                onClick={() => setExpanded((e) => (e === g.id ? null : g.id))}
+              >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1">
                     <span className="text-xs font-semibold">{t(`goods.${g.id}`)}</span>
@@ -110,11 +140,17 @@ export function TradeDialog({ port, onClose }: Props): JSX.Element {
                     {t('merchant.stock')}: {stock} · {t('merchant.cargo')}: {have}
                   </div>
                 </div>
+                <Sparkline values={history.get(g.id) ?? []} current={price} />
                 <div className="text-right">
                   <div className={`text-xs font-semibold ${verdict.tone}`}>{price}g</div>
                   <div className={`text-[9px] ${verdict.tone} opacity-80`}>{t(verdict.label)}</div>
                 </div>
               </div>
+              {expanded === g.id && (
+                <div className="text-[10px] opacity-70 mt-1 bg-sea-900/50 rounded p-1.5">
+                  Alapár: {g.basePrice}g · Térfogat: {g.volume} · 8 heti ártrend a grafikonon
+                </div>
+              )}
               <div className="flex gap-1 mt-1.5">
                 <button
                   className="pixel-btn !py-1 !px-2 !text-[9px] flex-1"

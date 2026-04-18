@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useGame } from '@/state/gameStore';
 import { bus } from '@/game/EventBus';
+import { Portrait } from '@/ui/Portrait';
 
 interface Props {
   onClose: () => void;
@@ -47,17 +48,17 @@ export function TanyaDialog({ onClose }: Props): JSX.Element {
         </button>
       </div>
 
-      <div className="flex justify-center gap-3 mb-3 text-3xl">
+      <div className="flex justify-center gap-3 mb-3">
         <div className="flex flex-col items-center">
-          <div>👩‍🦰</div>
+          <Portrait who="aniko" size={56} />
           <div className="text-[9px] opacity-70 mt-1">{t('tanya.anikoName')}</div>
         </div>
         <div className="flex flex-col items-center">
-          <div>👧</div>
+          <Portrait who="csillag" size={56} />
           <div className="text-[9px] opacity-70 mt-1">{t('tanya.csillagName')} ({family.csillagAge})</div>
         </div>
         <div className="flex flex-col items-center">
-          <div>👶</div>
+          <Portrait who="boroka" size={56} />
           <div className="text-[9px] opacity-70 mt-1">{t('tanya.borokaName')} ({family.borokaAge})</div>
         </div>
       </div>

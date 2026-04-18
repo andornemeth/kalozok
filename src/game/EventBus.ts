@@ -5,6 +5,7 @@ export type GameEvents = {
   'scene:start': { key: 'World' | 'Naval' | 'Duel' | 'Land' | 'Treasure'; data?: unknown };
   'world:nearPort': { portId: string } | null;
   'world:sightEnemy': { enemyId: string; fled?: boolean };
+  'world:fastTravel': { portId: string };
   'naval:end': { outcome: 'victory' | 'defeat' | 'fled'; boardedShip?: string };
   'duel:end': { outcome: 'victory' | 'defeat' };
   'land:end': { outcome: 'victory' | 'defeat' };

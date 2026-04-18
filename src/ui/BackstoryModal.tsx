@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useGame } from '@/state/gameStore';
+import { Portrait } from '@/ui/Portrait';
 
 interface Props {
   onClose: () => void;
@@ -10,11 +11,11 @@ interface Props {
 export function BackstoryModal({ onClose }: Props): JSX.Element {
   const { t } = useTranslation();
   const [page, setPage] = useState(0);
-  const pages = [
-    { key: 'backstory.paragraph1', motif: '🏡' },
-    { key: 'backstory.paragraph2', motif: '⛵' },
-    { key: 'backstory.paragraph3', motif: '🏴‍☠️' },
-    { key: 'backstory.paragraph4', motif: '🌻' },
+  const pages: { key: string; portrait: 'pegya' | 'aniko' | 'csillag' | 'boroka' }[] = [
+    { key: 'backstory.paragraph1', portrait: 'pegya' },
+    { key: 'backstory.paragraph2', portrait: 'aniko' },
+    { key: 'backstory.paragraph3', portrait: 'pegya' },
+    { key: 'backstory.paragraph4', portrait: 'csillag' },
   ];
   const last = page === pages.length - 1;
   const current = pages[page]!;
@@ -35,7 +36,9 @@ export function BackstoryModal({ onClose }: Props): JSX.Element {
           <h2 className="font-pixel text-gold text-sm">{t('backstory.title')}</h2>
           <span className="text-[10px] opacity-60">{page + 1} / {pages.length}</span>
         </div>
-        <div className="text-center text-4xl mb-3">{current.motif}</div>
+        <div className="flex justify-center mb-3">
+          <Portrait who={current.portrait} size={80} />
+        </div>
         <AnimatePresence mode="wait">
           <motion.p
             key={page}

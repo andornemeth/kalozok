@@ -12,6 +12,7 @@ import { NewCareerModal } from '@/ui/NewCareerModal';
 import { BackstoryModal } from '@/ui/BackstoryModal';
 import { AchievementToast } from '@/ui/AchievementToast';
 import { Objectives } from '@/ui/Objectives';
+import { TutorialOverlay } from '@/ui/TutorialOverlay';
 import { Toasts } from '@/ui/Toasts';
 import { bus } from '@/game/EventBus';
 import { Audio } from '@/audio/AudioManager';
@@ -71,6 +72,7 @@ export default function App(): JSX.Element {
           <PhaserMount />
           {scene !== 'title' && <HUD onMenu={() => setModal('save')} onSettings={() => setModal('settings')} />}
           {scene === 'world' && <Objectives />}
+          {scene === 'world' && <TutorialOverlay />}
           {scene === 'port' && <PortMenu />}
           <AchievementToast />
           <Toasts />

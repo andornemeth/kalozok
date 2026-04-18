@@ -56,5 +56,14 @@ export default defineConfig({
   build: {
     target: 'es2020',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          phaser: ['phaser'],
+          react: ['react', 'react-dom', 'react-i18next', 'i18next', 'i18next-browser-languagedetector'],
+          motion: ['framer-motion'],
+        },
+      },
+    },
   },
 });

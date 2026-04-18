@@ -3,9 +3,73 @@ import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { useGame } from '@/state/gameStore';
 import { SAVE_SLOTS, deleteSlot, readSlot, writeSlot, type SaveEnvelope, exportJSON, importJSON } from '@/utils/save';
+import { SHIPS } from '@/game/data/ships';
+import { findPort } from '@/game/data/ports';
 
 interface Props {
   onClose: () => void;
+}
+
+function formatDate(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function SaveCard({ env, slot, onSave, onLoad, onDelete }: {
+  env: SaveEnvelope | undefined;
+  slot: number;
+  onSave: () => void;
+  onLoad: () => void;
+  onDelete: () => void;
+}): JSX.Element {
+  const { t } = useTranslation();
+  if (!env) {
+    return (
+      <div className="rounded ring-1 ring-parchment-200/15 p-3 bg-sea-900/40">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-pixel text-[10px] text-parchment-200/70">{t('save.slot', { n: slot })}</div>
+            <div className="text-[11px] opacity-50 mt-1">{t('save.empty')}</div>
+          </div>
+          <button className="pixel-btn primary !text-[9px]" onClick={onSave}>
+            💾 {t('save.save')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+  const s = env.state;
+  const shipStats = SHIPS[s.ship.class];
+  const port = s.currentPortId ? findPort(s.currentPortId) : null;
+  const bond = s.family?.bond ?? 0;
+  return (
+    <div className="rounded ring-1 ring-parchment-200/25 p-3 bg-sea-900/70">
+      <div className="flex items-center justify-between mb-2">
+        <div className="font-pixel text-[10px] text-gold">{t('save.slot', { n: slot })}</div>
+        <div className="text-[9px] opacity-50">{formatDate(env.savedAt)}</div>
+      </div>
+      <div className="text-sm font-semibold mb-1">{s.career.name || '—'}</div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] mb-2 opacity-80">
+        <div>💰 {s.career.gold.toLocaleString('hu')} arany</div>
+        <div>⚓ {shipStats.displayKey}</div>
+        <div>📅 {s.career.daysAtSea} nap</div>
+        <div>⚔ {s.quests?.shipsDefeated ?? 0} győzelem</div>
+        <div>🌻 {bond}/100</div>
+        <div>📍 {port?.name ?? 'tengeren'}</div>
+      </div>
+      <div className="flex gap-1">
+        <button className="pixel-btn !text-[9px] flex-1" onClick={onSave}>
+          💾 {t('save.save')}
+        </button>
+        <button className="pixel-btn primary !text-[9px] flex-1" onClick={onLoad}>
+          📂 {t('save.load')}
+        </button>
+        <button className="pixel-btn ghost !text-[9px]" onClick={onDelete} title={t('save.delete')}>
+          ✕
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function SaveLoadMenu({ onClose }: Props): JSX.Element {
@@ -73,29 +137,17 @@ export function SaveLoadMenu({ onClose }: Props): JSX.Element {
             ✕
           </button>
         </div>
-        <div className="space-y-2">
-          {SAVE_SLOTS.map((slot) => {
-            const env = envs[slot];
-            return (
-              <div key={slot} className="flex items-center justify-between gap-2 border-b border-parchment-200/10 pb-2">
-                <div className="text-xs flex-1">
-                  <div className="font-semibold">{t('save.slot', { n: slot })}</div>
-                  <div className="opacity-60 text-[10px]">
-                    {env ? `${env.state.career.name || '—'} · ${env.state.career.daysAtSea}d · ${env.state.career.gold}g` : t('save.empty')}
-                  </div>
-                </div>
-                <button className="pixel-btn !py-1 !text-[9px]" onClick={() => save(slot)}>
-                  {t('save.save')}
-                </button>
-                <button className="pixel-btn ghost !py-1 !text-[9px]" disabled={!env} onClick={() => load(slot)}>
-                  {t('save.load')}
-                </button>
-                <button className="pixel-btn ghost !py-1 !text-[9px]" disabled={!env} onClick={() => del(slot)}>
-                  ✕
-                </button>
-              </div>
-            );
-          })}
+        <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+          {SAVE_SLOTS.map((slot) => (
+            <SaveCard
+              key={slot}
+              slot={slot}
+              env={envs[slot]}
+              onSave={() => save(slot)}
+              onLoad={() => load(slot)}
+              onDelete={() => del(slot)}
+            />
+          ))}
         </div>
         <div className="flex gap-2 mt-3">
           <button className="pixel-btn ghost flex-1 !text-[9px]" onClick={exportNow}>

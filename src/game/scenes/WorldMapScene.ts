@@ -119,9 +119,40 @@ export class WorldMapScene extends Phaser.Scene {
     this.setupCompassHud();
     this.setupDayNight();
     this.showFirstTimeHint();
+    this.setupFastTravel();
     this.cameras.main.fadeIn(380, 4, 20, 26);
     bus.emit('scene:changed', { key: 'world' });
     bus.emit('world:nearPort', null);
+  }
+
+  private fastTravelHandler: ((p: { portId: string }) => void) | null = null;
+  private setupFastTravel(): void {
+    if (this.fastTravelHandler) bus.off('world:fastTravel', this.fastTravelHandler);
+    this.fastTravelHandler = ({ portId }) => {
+      const port = PORTS.find((p) => p.id === portId);
+      if (!port) return;
+      const angle = Math.random() * Math.PI * 2;
+      let tx = port.x + Math.cos(angle) * 60;
+      let ty = port.y + Math.sin(angle) * 60;
+      for (let r = 60; r < 200 && this.isLand(tx, ty); r += 20) {
+        for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+          const cx = port.x + Math.cos(a) * r;
+          const cy = port.y + Math.sin(a) * r;
+          if (!this.isLand(cx, cy)) { tx = cx; ty = cy; break; }
+        }
+      }
+      this.player.setPosition(tx, ty);
+      this.heading = Math.atan2(port.y - ty, port.x - tx);
+      this.cameras.main.flash(260, 224, 178, 79);
+      this.cameras.main.centerOn(tx, ty);
+      useGame.getState().setWorldPos({ x: tx, y: ty, heading: this.heading });
+      bus.emit('world:nearPort', { portId });
+    };
+    bus.on('world:fastTravel', this.fastTravelHandler);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.fastTravelHandler) bus.off('world:fastTravel', this.fastTravelHandler);
+      this.fastTravelHandler = null;
+    });
   }
 
   // --- Sziget generálás ---

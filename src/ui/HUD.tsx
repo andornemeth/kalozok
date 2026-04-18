@@ -1,10 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import { useGame } from '@/state/gameStore';
 import { useEffect, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { bus } from '@/game/EventBus';
 import { PORTS } from '@/game/data/ports';
 import { SHIPS } from '@/game/data/ships';
 import { writeAutosave } from '@/utils/save';
+import { FastTravelDialog } from './FastTravelDialog';
 
 interface Props {
   onMenu: () => void;
@@ -19,6 +21,7 @@ export function HUD({ onMenu, onSettings }: Props): JSX.Element {
   const morale = useGame((s) => s.morale);
   const scene = useGame((s) => s.scene);
   const [nearPortId, setNearPortId] = useState<string | null>(null);
+  const [fastTravel, setFastTravel] = useState(false);
 
   useEffect(() => {
     const onNear = (payload: { portId: string } | null) => setNearPortId(payload?.portId ?? null);
@@ -62,11 +65,23 @@ export function HUD({ onMenu, onSettings }: Props): JSX.Element {
         <div className="hud-panel pointer-events-auto flex items-center gap-2">
           <span>⛵ {t(`nations.${career.nation}`)}</span>
           <span>· {career.daysAtSea}d</span>
+          {scene === 'world' && (
+            <button
+              className="pixel-btn ghost !py-1 !px-2 !text-[9px]"
+              onClick={() => setFastTravel(true)}
+              title="Gyorsutazás"
+            >
+              🧭
+            </button>
+          )}
           <button className="pixel-btn ghost !py-1 !px-2 !text-[9px]" onClick={onSettings}>
             ⚙
           </button>
         </div>
       </div>
+      <AnimatePresence>
+        {fastTravel && <FastTravelDialog onClose={() => setFastTravel(false)} />}
+      </AnimatePresence>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between p-3 safe-bottom gap-2">
         <div className="hud-panel pointer-events-auto flex flex-col gap-1 min-w-[160px]">
