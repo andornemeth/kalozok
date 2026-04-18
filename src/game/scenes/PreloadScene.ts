@@ -90,8 +90,14 @@ export class PreloadScene extends Phaser.Scene {
     this.makeIslandPatch('island-patch');
     this.makeSandPatch('sand-patch');
 
-    this.makePalm('palm');
-    this.makePalmLarge('palm-large');
+    this.makePalm('palm');                // gyümölcsfa (alma/szilva)
+    this.makePalmLarge('palm-large');     // jegenye-nyárfa
+    this.makeWillow('willow');            // szomorúfűz
+    this.makeReedCluster('reed-cluster'); // nádas
+    this.makeTanyaHut('tanya-hut');       // kis tanya (fehér ház, nádfedél)
+    this.makeSzelmalom('szelmalom');      // szélmalom
+    this.makeSunflowerField('sunflower-field'); // napraforgó-tábla
+    this.makeVineyard('vineyard');        // szőlősor
     this.makeCloudShadow('cloud-shadow');
     this.makeHillSilhouette('hill-1', 0x4a6b3a);
     this.makeHillSilhouette('hill-2', 0x6b8f3d);
@@ -805,38 +811,196 @@ export class PreloadScene extends Phaser.Scene {
     g.destroy();
   }
 
+  /** Kis gyümölcsfa (alma/szilva) — kerek zöld koronaes piros pöttyökkel. */
   private makePalm(key: string): void {
+    const w = 14, h = 16;
     const g = this.add.graphics();
+    // Törzs
     g.fillStyle(0x4a2e1a, 1);
-    g.fillRect(5, 6, 2, 6);
+    g.fillRect(6, 9, 2, 6);
+    // Lomb alsó
     g.fillStyle(0x2d5a2d, 1);
-    g.fillTriangle(6, 2, 11, 4, 6, 6);
-    g.fillTriangle(6, 2, 1, 4, 6, 6);
-    g.fillTriangle(6, 6, 11, 7, 6, 5);
-    g.fillTriangle(6, 6, 1, 7, 6, 5);
-    g.fillStyle(0x3a7a3a, 1);
-    g.fillTriangle(6, 3, 9, 4, 6, 5);
-    g.fillTriangle(6, 3, 3, 4, 6, 5);
-    g.generateTexture(key, 12, 12);
+    g.fillCircle(7, 7, 6);
+    // Lomb világos kiemelés
+    g.fillStyle(0x4a8b3d, 1);
+    g.fillCircle(6, 5, 4);
+    // Gyümölcs (piros pötty)
+    g.fillStyle(0xc0392b, 1);
+    g.fillCircle(9, 5, 1.2);
+    g.fillCircle(5, 8, 1.2);
+    g.fillCircle(8, 9, 1);
+    g.generateTexture(key, w, h);
     g.destroy();
   }
 
+  /** Jegenye-nyárfa — hosszú, keskeny magyar fa, tipikus Alföld-horizont. */
   private makePalmLarge(key: string): void {
+    const w = 12, h = 30;
     const g = this.add.graphics();
+    // Törzs
     g.fillStyle(0x3a2010, 1);
-    g.fillRect(8, 12, 4, 12);
+    g.fillRect(5, 24, 2, 6);
+    // Karcsú lomb — függőlegesen hosszú
     g.fillStyle(0x2d5a2d, 1);
-    g.fillTriangle(10, 4, 18, 8, 10, 12);
-    g.fillTriangle(10, 4, 2, 8, 10, 12);
-    g.fillTriangle(10, 12, 19, 14, 10, 10);
-    g.fillTriangle(10, 12, 1, 14, 10, 10);
-    g.fillStyle(0x3a7a3a, 1);
-    g.fillTriangle(10, 6, 15, 9, 10, 10);
-    g.fillTriangle(10, 6, 5, 9, 10, 10);
-    g.fillStyle(0xb99137, 1);
-    g.fillCircle(8, 13, 1);
-    g.fillCircle(12, 13, 1);
-    g.generateTexture(key, 20, 24);
+    g.fillTriangle(6, 2, 0, 26, 12, 26);
+    g.fillStyle(0x4a8b3d, 0.7);
+    g.fillTriangle(6, 4, 2, 24, 10, 24);
+    g.fillStyle(0x5ba34a, 0.6);
+    g.fillTriangle(6, 8, 4, 22, 8, 22);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Szomorúfűz — vízparti fa, lecsüngő ágakkal. */
+  private makeWillow(key: string): void {
+    const w = 22, h = 22;
+    const g = this.add.graphics();
+    // Törzs
+    g.fillStyle(0x4a3020, 1);
+    g.fillRect(10, 14, 2, 8);
+    // Korona alap — széles, lelóg
+    g.fillStyle(0x4a8b3d, 1);
+    g.fillEllipse(11, 10, 20, 16);
+    // Lecsüngő ág-indák
+    g.lineStyle(1, 0x2d5a2d, 0.9);
+    for (let i = 0; i < 8; i++) {
+      const x = 3 + i * 2.2;
+      g.lineBetween(x, 12, x + (i % 2 ? 1 : -1), 18);
+    }
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Nádas — vízparti függőleges nádszálak. */
+  private makeReedCluster(key: string): void {
+    const w = 16, h = 14;
+    const g = this.add.graphics();
+    // Sötét alap (tőzeges iszap)
+    g.fillStyle(0x3a4a2a, 0.5);
+    g.fillEllipse(8, 12, 14, 4);
+    // Függőleges nádszálak (zöld-sárga keveréke)
+    const reedColors = [0x8a9a3a, 0xa3b04f, 0x6b8f3d];
+    for (let i = 0; i < 8; i++) {
+      const x = 2 + i * 1.8;
+      const tall = 6 + Math.floor(Math.random() * 5);
+      g.lineStyle(1, reedColors[i % reedColors.length]!, 0.9);
+      g.lineBetween(x, 13, x, 13 - tall);
+    }
+    // Nádtollak a csúcson
+    g.fillStyle(0xc9a86a, 1);
+    for (let i = 0; i < 6; i++) {
+      const x = 3 + i * 2;
+      g.fillCircle(x, 6 + Math.random() * 2, 0.8);
+    }
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Tanya — kis fehér ház nádfedéllel (délvidéki paraszt-ház). */
+  private makeTanyaHut(key: string): void {
+    const w = 24, h = 20;
+    const g = this.add.graphics();
+    // Talaj-árnyék
+    g.fillStyle(0x04141a, 0.35);
+    g.fillEllipse(12, 19, 20, 3);
+    // Fehér falak
+    g.fillStyle(0xfbf5e3, 1);
+    g.fillRect(4, 11, 16, 8);
+    // Nádfedél
+    g.fillStyle(0x8a6a3a, 1);
+    g.fillTriangle(2, 11, 12, 3, 22, 11);
+    // Tető textúra
+    g.fillStyle(0x6b4a2a, 0.7);
+    g.fillTriangle(4, 10, 12, 5, 20, 10);
+    // Ajtó
+    g.fillStyle(0x3a2010, 1);
+    g.fillRect(10, 14, 4, 5);
+    // Ablak
+    g.fillStyle(0x3a5a8a, 1);
+    g.fillRect(6, 13, 2, 2);
+    g.fillRect(16, 13, 2, 2);
+    // Kémény
+    g.fillStyle(0x6b6256, 1);
+    g.fillRect(16, 4, 2, 4);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Szélmalom — magyaros, vitorlás. */
+  private makeSzelmalom(key: string): void {
+    const w = 28, h = 32;
+    const g = this.add.graphics();
+    // Alap-árnyék
+    g.fillStyle(0x04141a, 0.35);
+    g.fillEllipse(14, 30, 20, 3);
+    // Torony (trapéz)
+    g.fillStyle(0xc9a86a, 1);
+    g.fillTriangle(10, 10, 18, 10, 20, 28);
+    g.fillTriangle(10, 10, 20, 28, 8, 28);
+    // Kő textúra
+    g.fillStyle(0x8a6a3a, 0.4);
+    for (let yy = 12; yy < 28; yy += 4) {
+      g.fillRect(10, yy, 8, 1);
+    }
+    // Tető (kis kúp)
+    g.fillStyle(0x6b4a2a, 1);
+    g.fillTriangle(9, 10, 14, 4, 19, 10);
+    // Vitorlák (+ alak)
+    g.lineStyle(2, 0x3a2010, 1);
+    g.lineBetween(14, 10, 14, 22);
+    g.lineBetween(7, 14, 21, 14);
+    // Vitorla-lapok
+    g.fillStyle(0xfbf5e3, 0.9);
+    g.fillTriangle(14, 10, 14, 14, 11, 10);
+    g.fillTriangle(14, 14, 14, 18, 17, 18);
+    g.fillTriangle(14, 14, 10, 14, 10, 17);
+    g.fillTriangle(14, 14, 18, 14, 18, 11);
+    // Központ
+    g.fillStyle(0x3a2010, 1);
+    g.fillCircle(14, 14, 1.5);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Napraforgó-tábla — sárga pöttyök zöld alapon. */
+  private makeSunflowerField(key: string): void {
+    const w = 18, h = 10;
+    const g = this.add.graphics();
+    // Zöld alap
+    g.fillStyle(0x4a8b3d, 1);
+    g.fillEllipse(9, 5, 18, 10);
+    // Napraforgó-fejek
+    g.fillStyle(0xe0b24f, 1);
+    for (let i = 0; i < 7; i++) {
+      const x = 2 + i * 2.3;
+      const y = 2 + (i % 2) * 4;
+      g.fillCircle(x, y, 1.5);
+      g.fillStyle(0x6b3e1f, 1);
+      g.fillCircle(x, y, 0.6);
+      g.fillStyle(0xe0b24f, 1);
+    }
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  /** Szőlősor — vonalas sorok, inkább nagyobb területnek. */
+  private makeVineyard(key: string): void {
+    const w = 20, h = 14;
+    const g = this.add.graphics();
+    g.fillStyle(0x5a4a3a, 1);
+    g.fillEllipse(10, 7, 20, 13);
+    // Szőlősorok (zöld vonalkák)
+    g.lineStyle(1, 0x4a7a3a, 0.95);
+    for (let i = 0; i < 5; i++) {
+      const y = 2 + i * 2.2;
+      g.lineBetween(2, y, 18, y);
+    }
+    // Lila pötty (szőlőfürt érés)
+    g.fillStyle(0x7a3e8a, 1);
+    g.fillCircle(5, 5, 0.8);
+    g.fillCircle(13, 7, 0.8);
+    g.fillCircle(9, 11, 0.8);
+    g.generateTexture(key, w, h);
     g.destroy();
   }
 

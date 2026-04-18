@@ -216,44 +216,81 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private drawLandMasses(): void {
-    const sandLayer = this.add.graphics().setDepth(2);
+    // Délvidéki rétegek: iszapos nádas (part), zsenge fű, erdő-foltok
+    const shoreLayer = this.add.graphics().setDepth(2);   // partszéli tőzeg
     const grassLayer = this.add.graphics().setDepth(2);
     const forestLayer = this.add.graphics().setDepth(2);
 
     for (const isl of this.islands) {
       const pts = isl.poly.points;
-      sandLayer.fillStyle(0xe8d28a, 1);
-      sandLayer.fillPoints(pts, true);
-      // Fű
+      // Legkülső réteg — sáros nádas-part
+      shoreLayer.fillStyle(0x8a7a4a, 1);
+      shoreLayer.fillPoints(pts, true);
+      // Fű — zsenge tavaszi-zöld (kissé a sárgás felé)
       const inner1 = pts.map((p) => ({ x: isl.cx + (p.x - isl.cx) * 0.86, y: isl.cy + (p.y - isl.cy) * 0.86 }));
-      grassLayer.fillStyle(0x6b8f3d, 1);
+      grassLayer.fillStyle(0x7aa33d, 1);
       grassLayer.fillPoints(inner1, true);
-      // Erdő
+      // Erdő — sűrű pannon erdő
       const inner2 = pts.map((p) => ({ x: isl.cx + (p.x - isl.cx) * 0.62, y: isl.cy + (p.y - isl.cy) * 0.62 }));
-      forestLayer.fillStyle(0x3a6d3a, 1);
+      forestLayer.fillStyle(0x2f5a2f, 1);
       forestLayer.fillPoints(inner2, true);
 
-      // Pálma-szórás
-      const palmCount = Math.max(2, Math.floor((isl.rx * isl.ry) / 1200));
-      for (let i = 0; i < palmCount; i++) {
-        const angle = (i / palmCount) * Math.PI * 2 + Math.random();
+      // === Fák szórás — gyümölcsfák, jegenyék, fűzfák ===
+      const treeCount = Math.max(2, Math.floor((isl.rx * isl.ry) / 1200));
+      for (let i = 0; i < treeCount; i++) {
+        const angle = (i / treeCount) * Math.PI * 2 + Math.random();
         const r = 0.78;
         const px = isl.cx + Math.cos(angle) * isl.rx * r * (0.7 + Math.random() * 0.3);
         const py = isl.cy + Math.sin(angle) * isl.ry * r * (0.7 + Math.random() * 0.3);
         if (this.isLand(px, py)) {
-          this.add.image(px, py, Math.random() < 0.4 ? 'palm-large' : 'palm').setDepth(3);
+          // Véletlenszerű fa-típus
+          const roll = Math.random();
+          const tex = roll < 0.5 ? 'palm' : roll < 0.8 ? 'palm-large' : 'willow';
+          this.add.image(px, py, tex).setDepth(3);
         }
       }
-      // Hegy / dombsziluett
+
+      // === Nádas a partvonalon ===
+      const reedCount = Math.max(3, Math.floor((isl.rx + isl.ry) / 22));
+      for (let i = 0; i < reedCount; i++) {
+        const a = (i / reedCount) * Math.PI * 2 + Math.random() * 0.4;
+        const rr = 0.98 + Math.random() * 0.08;
+        const rx = isl.cx + Math.cos(a) * isl.rx * rr;
+        const ry = isl.cy + Math.sin(a) * isl.ry * rr;
+        // Reed a part mentén — akár vízen (sekély) akár szélső part
+        this.add.image(rx, ry, 'reed-cluster').setDepth(2.3).setAlpha(0.85);
+      }
+
+      // === Nagyobb szigeteken tanya / szélmalom / napraforgó-tábla ===
+      if (isl.rx > 60 && isl.ry > 25 && Math.random() < 0.55) {
+        const tx = isl.cx + (Math.random() - 0.5) * isl.rx * 0.6;
+        const ty = isl.cy + (Math.random() - 0.5) * isl.ry * 0.6;
+        if (this.isLand(tx, ty)) {
+          const roll = Math.random();
+          const tex = roll < 0.5 ? 'tanya-hut' : roll < 0.8 ? 'szelmalom' : 'sunflower-field';
+          this.add.image(tx, ty, tex).setDepth(3.2);
+        }
+      }
+
+      // === Hegy / dombsziluett (vajdasági hátság) ===
       if (isl.hilly && isl.rx > 60) {
         const hillCount = Math.max(1, Math.floor(isl.rx / 60));
         for (let i = 0; i < hillCount; i++) {
           const dx = (i - (hillCount - 1) / 2) * 28;
           this.add.image(isl.cx + dx, isl.cy - 4, i % 2 === 0 ? 'hill-1' : 'hill-2').setDepth(3);
         }
+        // Hilly szigetek esetén szőlősor is
+        if (Math.random() < 0.4) {
+          const vx = isl.cx + (Math.random() - 0.5) * isl.rx * 0.5;
+          const vy = isl.cy + (Math.random() - 0.5) * isl.ry * 0.5;
+          if (this.isLand(vx, vy)) {
+            this.add.image(vx, vy, 'vineyard').setDepth(3.1);
+          }
+        }
       }
-      // Sziklák part mentén
-      for (let i = 0; i < 3; i++) {
+
+      // === Sziklák part mentén (kisebb sűrűséggel) ===
+      for (let i = 0; i < 2; i++) {
         const a = Math.random() * Math.PI * 2;
         const rx = isl.cx + Math.cos(a) * isl.rx * 0.95;
         const ry = isl.cy + Math.sin(a) * isl.ry * 0.95;
