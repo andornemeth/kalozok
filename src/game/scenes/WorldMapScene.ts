@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { PORTS, WORLD_W, WORLD_H, type Port, type NationId, nationColor } from '@/game/data/ports';
+import { RIVERS } from '@/game/data/rivers';
+import { Audio } from '@/audio/AudioManager';
 import { WindSystem } from '@/game/systems/WindSystem';
 import { bus } from '@/game/EventBus';
 import { useGame } from '@/state/gameStore';
@@ -100,6 +102,8 @@ export class WorldMapScene extends Phaser.Scene {
   private waveCrests: Phaser.GameObjects.Image[] = [];
   private encounterGrace = 2200;
   private saveTimer = 0;
+  private ambientAccum = 0;
+  private ambientNextAt = 6000;
   private hintText?: Phaser.GameObjects.Text;
   private dayLabel!: Phaser.GameObjects.Text;
   private spawnTimer = 0;
@@ -113,6 +117,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#062a2e');
     this.generateIslands();
     this.drawWater();
+    this.drawRivers();
     this.drawLandMasses();
     this.spawnWaveCrests();
     this.spawnCloudShadows();
@@ -213,6 +218,90 @@ export class WorldMapScene extends Phaser.Scene {
         delay: Math.random() * 2000,
       });
     }
+  }
+
+  private drawRivers(): void {
+    // Folyók — Tisza, Duna, Száva, Temes, Béga. Enyhén világosabb sáv
+    // a vízen, mely az áramlás mentén visszaadja a Pannon-medence
+    // egykori folyóhálózatát.
+    const riverLayer = this.add.graphics().setDepth(1.2);
+    const labelFont = {
+      fontFamily: 'Cormorant Garamond, serif',
+      fontSize: '18px',
+      color: '#bfe2e4',
+      fontStyle: 'italic',
+      stroke: '#04141a',
+      strokeThickness: 3,
+    } as const;
+
+    for (const r of RIVERS) {
+      // Külső halványabb sáv — "szél"
+      riverLayer.lineStyle(22, r.color, 0.22);
+      riverLayer.beginPath();
+      riverLayer.moveTo(r.points[0]!.x, r.points[0]!.y);
+      for (let i = 1; i < r.points.length; i++) {
+        riverLayer.lineTo(r.points[i]!.x, r.points[i]!.y);
+      }
+      riverLayer.strokePath();
+      // Belső fényesebb vonal — "élő áram"
+      riverLayer.lineStyle(8, r.color, 0.55);
+      riverLayer.beginPath();
+      riverLayer.moveTo(r.points[0]!.x, r.points[0]!.y);
+      for (let i = 1; i < r.points.length; i++) {
+        riverLayer.lineTo(r.points[i]!.x, r.points[i]!.y);
+      }
+      riverLayer.strokePath();
+
+      // Áramlási particle-k — fehér pöttyök lassan csúsznak végig
+      for (let i = 0; i < 4; i++) {
+        this.spawnRiverParticle(r.points, i / 4);
+      }
+
+      // Címke
+      const label = r.points[r.labelIndex];
+      if (label) {
+        this.add.text(label.x, label.y - 18, r.name, labelFont)
+          .setOrigin(0.5).setDepth(1.3).setAlpha(0.85);
+      }
+    }
+  }
+
+  private spawnRiverParticle(points: { x: number; y: number }[], startT: number): void {
+    const dot = this.add.circle(points[0]!.x, points[0]!.y, 2, 0xfbf5e3, 0.75).setDepth(1.4);
+    const segments: { x1: number; y1: number; x2: number; y2: number; len: number }[] = [];
+    let totalLen = 0;
+    for (let i = 0; i < points.length - 1; i++) {
+      const dx = points[i + 1]!.x - points[i]!.x;
+      const dy = points[i + 1]!.y - points[i]!.y;
+      const len = Math.hypot(dx, dy);
+      segments.push({ x1: points[i]!.x, y1: points[i]!.y, x2: points[i + 1]!.x, y2: points[i + 1]!.y, len });
+      totalLen += len;
+    }
+    const posAt = (lenIn: number) => {
+      let remaining = lenIn;
+      for (const s of segments) {
+        if (remaining <= s.len) {
+          const f = remaining / s.len;
+          return { x: s.x1 + (s.x2 - s.x1) * f, y: s.y1 + (s.y2 - s.y1) * f };
+        }
+        remaining -= s.len;
+      }
+      const last = segments[segments.length - 1]!;
+      return { x: last.x2, y: last.y2 };
+    };
+    // Egyetlen ciklikus tween: a t 0-tól totalLen-ig megy, 18 ms/px
+    const state = { t: startT * totalLen };
+    this.tweens.add({
+      targets: state,
+      t: startT * totalLen + totalLen,
+      duration: totalLen * 18,
+      repeat: -1,
+      onUpdate: () => {
+        const cur = state.t % totalLen;
+        const p = posAt(cur);
+        dot.setPosition(p.x, p.y);
+      },
+    });
   }
 
   private drawLandMasses(): void {
@@ -688,6 +777,12 @@ export class WorldMapScene extends Phaser.Scene {
       this.minimapAccum = 0;
       this.refreshMinimap();
     }
+    this.ambientAccum += dt;
+    if (this.ambientAccum > this.ambientNextAt) {
+      this.ambientAccum = 0;
+      this.ambientNextAt = 8000 + Math.random() * 7000;
+      this.playRegionalAmbient();
+    }
     this.spawnTimer += dt;
     if (this.spawnTimer > 8000 && this.enemies.length < 12) {
       this.spawnTimer = 0;
@@ -850,5 +945,43 @@ export class WorldMapScene extends Phaser.Scene {
       this.nearPortId = id;
       bus.emit('world:nearPort', id ? { portId: id } : null);
     }
+  }
+
+  /**
+   * Régió-alapú ambient: megnézi a legközelebbi portot és azt, hogy a
+   * játékos milyen környezetben vitorlázik, majd illő hangot játszik le.
+   */
+  private playRegionalAmbient(): void {
+    if (!this.player) return;
+    // Legközelebbi port keresése
+    let nearest: Port | null = null;
+    let bestD = Infinity;
+    for (const p of PORTS) {
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, p.x, p.y);
+      if (d < bestD) { bestD = d; nearest = p; }
+    }
+    // Távoli ambient: nád / víz
+    if (bestD > 260) {
+      if (Math.random() < 0.5) Audio.reedCricket();
+      else Audio.storkClatter();
+      return;
+    }
+    if (!nearest) return;
+    // Közeli port — választás a port jellege alapján
+    if (nearest.homePort) {
+      // Zenta közelében halk cimbalom-frázis
+      Audio.cimbalomPhrase();
+      return;
+    }
+    if (nearest.size === 'capital' || nearest.size === 'large') {
+      // Nagyobb város — templomi harangszó
+      if ((nearest.nation === 'magyar' || nearest.nation === 'olah' || nearest.nation === 'svab' || nearest.nation === 'bunyevac' || nearest.nation === 'rac') && Math.random() < 0.7) {
+        Audio.churchBell();
+        return;
+      }
+    }
+    // Default: madárhang
+    if (Math.random() < 0.5) Audio.storkClatter();
+    else Audio.reedCricket();
   }
 }

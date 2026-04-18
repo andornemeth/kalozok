@@ -145,6 +145,55 @@ class AudioManagerImpl {
     this.tone({ type: 'sawtooth', freq: 60, sweepTo: 20, duration: 0.35, volume: 0.4 });
   }
 
+  // --- Délvidéki ambient hangok ---
+
+  /** Templomi harangszó — mély triangle hosszú cseng-utánával. */
+  churchBell(): void {
+    const ctx = this.ensureRunning();
+    if (!ctx) return;
+    const vol = 0.22 * this.sfxVolume;
+    if (vol <= 0) return;
+    // Fő ütés
+    this.tone({ type: 'triangle', freq: 196, duration: 1.8, volume: vol * 0.9, attack: 0.015 });
+    // Felhang
+    this.tone({ type: 'triangle', freq: 294, duration: 1.2, volume: vol * 0.35, attack: 0.02 });
+    this.tone({ type: 'sine', freq: 98, duration: 2.4, volume: vol * 0.4, attack: 0.03 });
+  }
+
+  /** Nádas-tücsök — magas, rövid cirpelések gyorsan egymás után. */
+  reedCricket(): void {
+    const ctx = this.ensureRunning();
+    if (!ctx) return;
+    for (let i = 0; i < 4; i++) {
+      setTimeout(() => {
+        this.tone({ type: 'square', freq: 4200 + Math.random() * 400, duration: 0.025, volume: 0.06, attack: 0.001 });
+      }, i * 60 + Math.random() * 20);
+    }
+  }
+
+  /** Gólyakelepelés — gyors, kattogó, fa-szerű. */
+  storkClatter(): void {
+    const ctx = this.ensureRunning();
+    if (!ctx) return;
+    for (let i = 0; i < 8; i++) {
+      setTimeout(() => {
+        this.tone({ type: 'square', freq: 280 + Math.random() * 40, duration: 0.03, volume: 0.09, attack: 0.001 });
+      }, i * 55);
+    }
+  }
+
+  /** Cimbalom-frázis — gyors triangle arpeggio, pentaton. */
+  cimbalomPhrase(): void {
+    const ctx = this.ensureRunning();
+    if (!ctx) return;
+    const notes = [587, 494, 440, 392, 440, 523, 494, 440];
+    notes.forEach((f, i) => {
+      setTimeout(() => this.tone({
+        type: 'triangle', freq: f, duration: 0.22, volume: 0.12, attack: 0.005,
+      }), i * 140);
+    });
+  }
+
   /** Halk ambient hullám-ütem a World scene-hez. */
   startAmbient(): void {
     if (this.waveTimer != null) return;
