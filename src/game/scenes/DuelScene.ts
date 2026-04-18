@@ -62,6 +62,7 @@ export class DuelScene extends Phaser.Scene {
   private ended = false;
   private defenderMode = false;
   private counterWindow = 0;          // ms, ha > 0 akkor counter-ablak aktív
+  private startupGrace = 0;           // ms, ez alatt nincs pozicionális KO
 
   constructor() {
     super('Duel');
@@ -86,17 +87,27 @@ export class DuelScene extends Phaser.Scene {
     this.cameras.main.fadeIn(380, 4, 20, 26);
     this.cameras.main.setBackgroundColor('#0e2630');
 
-    this.arenaLeft = 100;
-    this.arenaRight = this.scale.width - 100;
+    // Aréna szélek: keskenyebb képernyőkön is maradjon normális játéktér
+    const W = this.scale.width;
+    this.arenaLeft = Math.max(50, Math.min(100, W * 0.1));
+    this.arenaRight = W - this.arenaLeft;
 
     this.drawBackground();
     this.drawDeck();
 
     const cy = this.scale.height / 2 + 40;
-    const playerX = this.scale.width / 2 - 140;
-    const enemyX = this.scale.width / 2 + 140;
+    // Duelisták mindig biztonságosan az arénán belül spawnolnak
+    const safePad = 60;
+    const midX = W / 2;
+    const maxOffset = Math.max(80, midX - this.arenaLeft - safePad);
+    const startOffset = Math.min(140, maxOffset);
+    const playerX = midX - startOffset;
+    const enemyX = midX + startOffset;
     this.player = this.makeDuelist(playerX, cy, 'duelist-player', 80, +1, 0);
     this.enemy = this.makeDuelist(enemyX, cy, 'duelist-enemy', 60 + Math.floor(Math.random() * 40), -1, 500);
+    // Startup grace: 800 ms-ig nem fut a checkEnd pozicionális vége, hogy
+    // bármilyen kezdeti clamp-bug miatt ne érjen véget a csata azonnal
+    this.startupGrace = 800;
 
     this.createBanner();
     this.createControls();
@@ -366,6 +377,7 @@ export class DuelScene extends Phaser.Scene {
 
   update(_t: number, dt: number): void {
     if (!this.player || !this.enemy) return;
+    if (this.startupGrace > 0) this.startupGrace = Math.max(0, this.startupGrace - dt);
     this.updatePlayerInput(dt);
     this.tickDuelist(this.player, dt);
     this.tickDuelist(this.enemy, dt);
@@ -649,7 +661,9 @@ export class DuelScene extends Phaser.Scene {
     if (this.ended) return;
     if (this.player.hp <= 0) return this.finish('defeat');
     if (this.enemy.hp <= 0) return this.finish('victory');
-    // Pozícionális KO: ha a játékos a bal szélre ért, vagy az ellenfél a jobb szélre
+    // Pozícionális KO — a startup grace alatt nem triggerel (kezdeti clamp
+    // vagy keskeny képernyő ne zárja le a csatát azonnal)
+    if (this.startupGrace > 0) return;
     if (this.player.posX <= this.arenaLeft) return this.finish('defeat', 'KIESTÉL!');
     if (this.enemy.posX >= this.arenaRight) return this.finish('victory', 'KIDOBTAD!');
   }
