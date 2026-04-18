@@ -43,11 +43,21 @@ export function TitleScreen({ onNew, onSettings, onSaves }: Props): JSX.Element 
         transition={{ duration: 0.6 }}
         className="text-center mb-10"
       >
-        <h1 className="font-pixel text-gold text-3xl sm:text-5xl tracking-wider drop-shadow-[4px_4px_0_rgba(0,0,0,0.5)]">
+        <h1 className="font-pixel text-gold text-2xl sm:text-4xl tracking-wider drop-shadow-[4px_4px_0_rgba(0,0,0,0.5)]">
           {t('app.title')}
         </h1>
-        <p className="mt-3 font-serif italic text-parchment-200 text-lg sm:text-2xl">{t('app.subtitle')}</p>
+        <p className="mt-2 font-serif italic text-parchment-100 text-base sm:text-xl">
+          <span className="text-red-400">Pegya</span>, a Karib-tenger ura!
+        </p>
+        <p className="mt-3 font-serif italic text-parchment-200/80 text-sm">{t('app.subtitle')}</p>
         <p className="mt-4 text-xs sm:text-sm text-parchment-100/70 max-w-xs mx-auto">{t('app.tagline')}</p>
+        <div className="mt-4 flex justify-center gap-2 text-xs opacity-70">
+          <span>🌻</span>
+          <span>🌶</span>
+          <span>⚓</span>
+          <span>🌶</span>
+          <span>🌻</span>
+        </div>
       </motion.div>
 
       <motion.div

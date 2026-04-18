@@ -16,9 +16,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Kalózok — a Karib-tenger ura',
-        short_name: 'Kalózok',
-        description: 'Modern, mobilbarát Pirates!-ihletésű kalandjáték',
+        name: 'Kalózok – Pegya, a Karib-tenger ura!',
+        short_name: 'Pegya',
+        description: 'Pegya, a zentai kalóz kalandjai a Karib-tengeren – vajdasági ízekkel, magyar szívvel.',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',

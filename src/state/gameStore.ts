@@ -27,6 +27,17 @@ export interface CareerState {
   rank: number;
 }
 
+export interface FamilyState {
+  anikoMorale: number;
+  csillagAge: number;
+  borokaAge: number;
+  bond: number;
+  visits: number;
+  lastVisitDay: number;
+  goldGiven: number;
+  storyShown: boolean;
+}
+
 export interface Reputation {
   england: number;
   spain: number;
@@ -55,6 +66,7 @@ export interface GameState {
   started: boolean;
   scene: SceneKey;
   career: CareerState;
+  family: FamilyState;
   ship: PlayerShip;
   cargo: Cargo;
   reputation: Reputation;
@@ -76,6 +88,7 @@ export interface GameState {
   changeReputation: (n: NationId, delta: number) => void;
   damageShip: (hull: number, sail: number, crewLost: number) => void;
   repairShip: () => void;
+  patchShip: (hullPct: number, sailPct: number) => void;
   setCrew: (n: number) => void;
   addCargo: (g: GoodId, n: number) => void;
   removeCargo: (g: GoodId, n: number) => void;
@@ -94,6 +107,8 @@ export interface GameState {
   recordTreasureFound: () => void;
   completeQuest: (id: string) => void;
   setWorldPos: (p: { x: number; y: number; heading: number } | null) => void;
+  visitFamily: (action: 'rest' | 'giveGold' | 'play', amount?: number) => void;
+  markStoryShown: () => void;
   loadState: (s: GameState) => void;
 }
 
@@ -129,6 +144,17 @@ const initialCareer: CareerState = {
   rank: 0,
 };
 
+const initialFamily: FamilyState = {
+  anikoMorale: 70,
+  csillagAge: 6,
+  borokaAge: 4,
+  bond: 60,
+  visits: 0,
+  lastVisitDay: -999,
+  goldGiven: 0,
+  storyShown: false,
+};
+
 const initialShip: PlayerShip = {
   class: 'sloop',
   hull: SHIPS.sloop.hullMax,
@@ -143,6 +169,7 @@ export const useGame = create<GameState>()(
       started: false,
       scene: 'title',
       career: initialCareer,
+      family: initialFamily,
       ship: initialShip,
       cargo: emptyCargo(),
       reputation: { england: 0, spain: 0, france: 0, netherlands: 0 },
@@ -171,6 +198,7 @@ export const useGame = create<GameState>()(
             difficulty,
             gold: difficulty === 'easy' ? 1200 : difficulty === 'hard' ? 250 : 500,
           },
+          family: { ...initialFamily },
           ship: { ...initialShip },
           cargo: emptyCargo(),
           reputation: { england: 0, spain: 0, france: 0, netherlands: 0 },
@@ -231,6 +259,14 @@ export const useGame = create<GameState>()(
         set((s) => {
           const stats = SHIPS[s.ship.class];
           return { ship: { ...s.ship, hull: stats.hullMax, sail: stats.sailMax } };
+        }),
+
+      patchShip: (hullPct, sailPct) =>
+        set((s) => {
+          const stats = SHIPS[s.ship.class];
+          const hull = Math.min(stats.hullMax, s.ship.hull + Math.round(stats.hullMax * hullPct));
+          const sail = Math.min(stats.sailMax, s.ship.sail + Math.round(stats.sailMax * sailPct));
+          return { ship: { ...s.ship, hull, sail } };
         }),
 
       setCrew: (n) =>
@@ -300,24 +336,67 @@ export const useGame = create<GameState>()(
 
       setWorldPos: (p) => set({ worldPos: p }),
 
+      visitFamily: (action, amount = 0) =>
+        set((s) => {
+          const fam = s.family ?? initialFamily;
+          const days = s.career.daysAtSea;
+          const baseBond = Math.min(100, fam.bond + 2);
+          if (action === 'rest') {
+            return {
+              family: { ...fam, visits: fam.visits + 1, lastVisitDay: days, bond: baseBond },
+              morale: Math.min(100, s.morale + 20),
+              food: s.food + 15,
+            };
+          }
+          if (action === 'giveGold') {
+            return {
+              family: {
+                ...fam,
+                visits: fam.visits + 1,
+                lastVisitDay: days,
+                goldGiven: fam.goldGiven + amount,
+                bond: Math.min(100, fam.bond + 5),
+                anikoMorale: Math.min(100, fam.anikoMorale + 6),
+              },
+              career: { ...s.career, gold: s.career.gold - amount, fame: s.career.fame + Math.floor(amount / 40) },
+            };
+          }
+          // play with girls
+          return {
+            family: { ...fam, visits: fam.visits + 1, lastVisitDay: days, bond: Math.min(100, fam.bond + 8) },
+            career: { ...s.career, fame: s.career.fame + 3 },
+            morale: Math.min(100, s.morale + 10),
+          };
+        }),
+
+      markStoryShown: () => set((s) => ({ family: { ...(s.family ?? initialFamily), storyShown: true } })),
+
       loadState: (s) => set({ ...s }),
     }),
     {
       name: 'kalozok:game',
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Record<string, unknown>;
         if (!s.quests) s.quests = initialQuests;
         if (s.worldPos === undefined) s.worldPos = null;
         if (!s.achievements) s.achievements = [];
         if (!s.flags) s.flags = initialFlags;
-        // v3: Karib-térkép koordinátarendszere megváltozott (1600×1100). Régi
-        // mentések (820×620) inkompatibilis pozíciói nullra esnek, hogy a
-        // játékos a kezdő kikötőben jelenjen meg.
         if (version < 3) {
           s.worldPos = null;
         }
+        // v4: Pegya átnevezte a kikötőket vajdasági nevekre; régi port-ID-k
+        // inkompatibilisek. Töröljük a currentPortId-t és a visitedPorts-t,
+        // és hozzáadjuk a család state-et.
+        if (version < 4) {
+          s.currentPortId = null;
+          const q = (s.quests as QuestProgress | undefined) ?? initialQuests;
+          s.quests = { ...q, visitedPorts: [] };
+          s.family = { ...initialFamily };
+          s.worldPos = null;
+        }
+        if (!s.family) s.family = { ...initialFamily };
         return s as unknown as GameState;
       },
     },

@@ -1,8 +1,9 @@
 {
   "app": {
     "title": "Kalózok",
-    "subtitle": "A Karib-tenger ura",
-    "tagline": "Modern kalandjáték a hét tengeren, telefonon is kényelmesen."
+    "titleFull": "Kalózok – Pegya, a Karib-tenger ura!",
+    "subtitle": "Pegya, a zentai kalóz",
+    "tagline": "Délvidéki szívvel a Karib-tengeren — vitorla, ágyú, paprika."
   },
   "title": {
     "new": "Új karrier",
@@ -10,7 +11,8 @@
     "daily": "Napi kihívás",
     "settings": "Beállítások",
     "credits": "Készítők",
-    "install": "Telepítés"
+    "install": "Telepítés",
+    "legend": "Pegya legendája"
   },
   "settings": {
     "title": "Beállítások",
@@ -40,7 +42,8 @@
     "difficulty": "Nehézség",
     "easy": "Újonc",
     "normal": "Tenger farkasa",
-    "hard": "Rémálom"
+    "hard": "Rémálom",
+    "hint": "Alapértelmezett: Pegya, a zentai kalóz"
   },
   "nations": {
     "england": "Anglia",
@@ -70,25 +73,47 @@
     "flee": "Menekülés"
   },
   "port": {
-    "welcome": "Üdv {{port}} kikötőjében",
+    "welcome": "Szervusz {{port}} kikötőjében, kapitány!",
+    "welcomeHome": "Hazaértél, Pegya! {{port}} ölel át.",
     "tavern": "Kocsma",
     "merchant": "Kereskedő",
-    "shipyard": "Hajógyár",
+    "shipyard": "Hajóács",
     "governor": "Kormányzó",
+    "tanya": "Tanya (Anikó)",
     "leave": "Kifutás a tengerre",
     "jail": "Börtön"
   },
+  "tanya": {
+    "title": "A zentai tanya",
+    "greeting": "Anikó kifutott eléd, mögötte a két kislány gyertyafénynél nevet.",
+    "rest": "Pihenés Anikónál",
+    "rested": "Kialudtad magad a tiszta ágyban. +{{morale}} morál, +{{food}} élelem.",
+    "giveGold": "Aranyat hagyok a családnak ({{amount}})",
+    "gaveGold": "Anikó szemébe könny gyűl: „Köszönöm, Pegya.\"",
+    "notEnoughGold": "Ennyi arany most nincs a zsebedben.",
+    "readLetter": "Anikó levelét elolvasom",
+    "playWithGirls": "Játék Csillaggal és Borókával",
+    "playedWithGirls": "Egy óra bújócska a kukoricásban. Pegya szíve megtelik. +{{fame}} hírnév.",
+    "anikoName": "Anikó",
+    "csillagName": "Csillag",
+    "borokaName": "Boróka",
+    "letterIntro": "„Drága Pegyám! A lányok ma ismét a tengerről kérdeztek. Csillag új dalt tanult, Boróka a macskára vigyáz. Vigyázz magadra — hazavárunk.\" — Anikó",
+    "farewell": "Mennem kell, szerelmem.",
+    "familyStatus": "Család összesen: {{total}}/100"
+  },
   "tavern": {
-    "title": "A Vidám Pintes Kocsma",
+    "title": "A Csárda",
     "hire": "Toborzás ({{cost}} arany)",
     "rumors": "Pletykák meghallgatása",
     "drink": "Italozás",
     "noCrew": "Ma nincsenek vállalkozó tengerészek.",
     "hired": "{{count}} új tengerész csatlakozott.",
-    "rumor": "Egy részeg matróz suttogja…"
+    "rumor": "Egy részeg matróz suttogja…",
+    "flavor": "A kocsmáros egy tál paprikás krumplit nyújt. A tűzhely mellett cimbalom szól."
   },
   "merchant": {
     "title": "Kereskedő bódé",
+    "subtitle": "{{name}} árui, {{port}} piacán",
     "buy": "Vétel",
     "sell": "Eladás",
     "stock": "Készlet",
@@ -96,15 +121,34 @@
     "hold": "Raktár",
     "cargo": "Rakomány",
     "notEnoughGold": "Kevés az arany!",
-    "notEnoughHold": "Megtelt a raktár!"
+    "notEnoughHold": "Megtelt a raktár!",
+    "priceGreat": "Remek ár!",
+    "priceGood": "Jó ár",
+    "priceFair": "Átlagos",
+    "priceBad": "Drága",
+    "priceTerrible": "Rablás!",
+    "specialty": "Helyi különlegesség — olcsó!",
+    "scarcity": "Hiánycikk — drágán megy!",
+    "buyX": "Vétel {{n}}",
+    "sellX": "Eladás {{n}}",
+    "buyMax": "Max",
+    "sellAll": "Mind",
+    "profit": "Várható haszon: {{g}}g",
+    "flavor": "„Adom-veszem, jó kapitány — sose dohány, mindig dohány!\" — Gyuri bácsi, a boltos"
   },
   "shipyard": {
-    "title": "Hajógyár",
-    "repair": "Javítás ({{cost}} arany)",
+    "title": "Hajóács — Kovács Lőrinc műhelye",
+    "subtitle": "„A jó hajó, mint a jó asszony: kell hozzá a karbantartás.\"",
+    "repair": "Teljes javítás ({{cost}} arany)",
+    "patchRepair": "Gyorsfoltozás ({{cost}} arany)",
+    "patchDone": "Foltokat kapott a hajó, holnap továbbmehetsz.",
     "upgradeCannons": "Több ágyú ({{cost}})",
     "upgradeSails": "Jobb vitorlázat ({{cost}})",
     "newShip": "Új hajó",
-    "repaired": "Hajó teljesen rendben."
+    "repaired": "Hajó teljesen rendben — ragyog mint a duna-víz.",
+    "hullStatus": "Törzs: {{current}}/{{max}}",
+    "sailStatus": "Vitorla: {{current}}/{{max}}",
+    "breakdown": "Törzs-javítás: {{hull}}g · Vitorla-folt: {{sail}}g"
   },
   "governor": {
     "title": "A Kormányzói palota",
@@ -127,7 +171,13 @@
     "sailHits": "Vitorlatalálatok",
     "crewHits": "Legénység veszteség",
     "yourTurn": "A te köröd",
-    "enemyTurn": "Ellenfél köre"
+    "enemyTurn": "Ellenfél köre",
+    "cryRally": "Hajrá, fiúk! Zentai vér nem válik vízzé!",
+    "cryFire": "Tűz! Az Istenért!",
+    "cryHit": "Talált! Süllyed!",
+    "cryBoard": "Kardot elő, magyar kalózok!",
+    "cryVictory": "Győztünk! Haza megyünk, Anikóhoz!",
+    "cryDefeat": "Vészhelyzet! Vitorlát bontsunk!"
   },
   "duel": {
     "title": "Párbaj",
@@ -143,16 +193,20 @@
     "defeat": "Legyőztek."
   },
   "land": {
-    "title": "Szárazföldi csata",
-    "buccaneer": "Kalóz",
+    "title": "Városostrom",
+    "buccaneer": "Hajdú",
     "soldier": "Katona",
-    "cavalry": "Lovasság",
+    "cavalry": "Huszár",
+    "cannon": "Ágyú",
     "leftFlank": "Bal szárny",
     "center": "Közép",
     "rightFlank": "Jobb szárny",
     "deploy": "Küld",
-    "victory": "A város elesett!",
-    "defeat": "Visszaverve."
+    "victory": "A város elesett! Pegya lobogója leng a toronyban.",
+    "defeat": "Visszaverve. A hajdúk fáradtan vonulnak vissza.",
+    "battleCryHussar": "Huszárok, rajta!",
+    "battleCryHajdu": "Hajdúk, most!",
+    "anikoLetter": "„Tudtam hogy menni fog. Gyere haza. — Anikó\""
   },
   "treasure": {
     "title": "Kincskeresés",
@@ -181,13 +235,15 @@
     "yes": "Igen",
     "no": "Nem",
     "back": "Vissza",
-    "next": "Tovább"
+    "next": "Tovább",
+    "ok": "Rendben"
   },
   "tutorial": {
     "move": "Érints a víz bármely pontjára, hogy odavitorlázz.",
     "wind": "A kis nyilak a szél irányát mutatják — szemből lassabb a hajó.",
     "port": "Érintsd a horgonyt egy kikötőbe érkezéshez.",
-    "combat": "A harcban a helyezkedés minden: fordulj oldalra az ágyúkhoz."
+    "combat": "A harcban a helyezkedés minden: fordulj oldalra az ágyúkhoz.",
+    "home": "Zenta a hazád — ott vár Anikó és a lányok. Látogasd gyakran!"
   },
   "goods": {
     "food": "Élelem",
@@ -195,8 +251,40 @@
     "sugar": "Cukor",
     "tobacco": "Dohány",
     "cloth": "Vászon",
-    "spice": "Fűszer",
+    "spice": "Paprika",
     "cannons": "Ágyúk",
     "gunpowder": "Lőpor"
+  },
+  "backstory": {
+    "title": "Pegya legendája",
+    "paragraph1": "Zenta, 1678. A Tisza partján született Pegya halászember volt, mint apja és nagyapja. Fürge eszével, bátor szívével és soha nem unalmas nyelvével tűnt ki a faluból. A török-Habsburg villongások idején egy éjszaka portyázók támadtak a tanyára — Pegya megvédte Anikót, a molnár lányát, de a házuk leégett.",
+    "paragraph2": "Menekültek hónapokig nyugatra, Triesztig, onnan hajóra szálltak. A hajó útközben eltévedt és Pegya pár hónap múlva már a Karib-tengeren dobogott. Két kislány született a hosszú úton: Csillag, akinek szeme úgy csillog mint az éjszakai égbolt, és Boróka, aki olyan makacs mint a borókafa.",
+    "paragraph3": "Pegya matróznak állt egy spanyol hajón, de a kapitány kicsalta a bérét. Egy viharos éjjel Pegya átvette a hajót, és kitűzte rá a saját zászlaját: piros-kék sárga sáv, közepén egy napraforgó. A Karib-tengeren ezóta senki sem mer ujjat húzni a zentai kalózzal.",
+    "paragraph4": "Anikó és a lányok egy elhagyott tanyán várnak rá a Karib-tenger partján — Pegya Zentának keresztelte. Innen indul minden kalandra, ide tér meg minden csata után. Ez a játék az ő története.",
+    "begin": "Induljon a kaland!"
+  },
+  "ports": {
+    "szabadka": { "flavor": "A Bácska szíve — nagy piac, még nagyobb nyelv." },
+    "ujvidek": { "flavor": "Az angol koronagyarmat fővárosa. Cifra épületek, cifrább politika." },
+    "topolya": { "flavor": "Cukorültetvények és izgága telepesek." },
+    "nagybecskerek": { "flavor": "Gabonaraktárak, borospincék — ha megrakod a hajót, Angliáig húz." },
+    "zombor": { "flavor": "Spanyol kormányzó, aranylánc, gyanakvás. Itt senki se bízik senkiben." },
+    "pancsova": { "flavor": "Ágyúmester-iskola — ha van pénzed, itt tanulhatsz tüzelni." },
+    "versec": { "flavor": "A spanyol erőd árnyékában cukornád nő — és összeesküvés." },
+    "kikinda": { "flavor": "Rumgyár, matrózok, szerelmespárok. A levegő is részegít." },
+    "obecse": { "flavor": "Fűszerraktár. A paprikapor a szemedbe kerül mielőtt kialkudnád az árát." },
+    "apatin": { "flavor": "Halászkikötő lett spanyol raktárbázis. Lőpor, hordók, veszély." },
+    "magyarkanizsa": { "flavor": "Vászonszövők és magyar parasztlányok — oldott holland pénzzel." },
+    "fehertemplom": { "flavor": "Dohányültetvények, fehér falak, fekete szívek." },
+    "temerin": { "flavor": "A spanyol főkikötő. Itt kötnek ki az ezüst-flották." },
+    "szenttamas": { "flavor": "Kis város, nagy szövőüzem." },
+    "palics": { "flavor": "A kedvenc kis üdülőhely. Itt ritkán lőnek, gyakran táncolnak." },
+    "ada": { "flavor": "Francia posztó, francia illatok — Pegya itt vesz Anikónak kendőt." },
+    "torokbecse": { "flavor": "Francia rum-gyártmány. A helyi kocsmáros Pegya régi barátja." },
+    "csoka": { "flavor": "Fűszer, láp, moszkitók. Kicsi de értékes." },
+    "kula": { "flavor": "Holland posztós bódék és alig titkolt csempészet." },
+    "martonos": { "flavor": "Holland lőporraktár — óvatosan a pipával!" },
+    "horgos": { "flavor": "Kalóz-tanya: itt nem kérdezik, honnan jöttél." },
+    "zenta": { "flavor": "Pegya otthona. Anikó főzi a paprikást, Csillag és Boróka játszik a kiserdőben." }
   }
 }

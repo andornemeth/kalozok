@@ -9,6 +9,7 @@ import { PortMenu } from '@/ui/PortMenu';
 import { SettingsMenu } from '@/ui/SettingsMenu';
 import { SaveLoadMenu } from '@/ui/SaveLoadMenu';
 import { NewCareerModal } from '@/ui/NewCareerModal';
+import { BackstoryModal } from '@/ui/BackstoryModal';
 import { AchievementToast } from '@/ui/AchievementToast';
 import { Objectives } from '@/ui/Objectives';
 import { Toasts } from '@/ui/Toasts';
@@ -16,12 +17,13 @@ import { bus } from '@/game/EventBus';
 import { Audio } from '@/audio/AudioManager';
 import i18n from '@/i18n';
 
-type Modal = 'settings' | 'save' | 'newcareer' | null;
+type Modal = 'settings' | 'save' | 'newcareer' | 'backstory' | null;
 
 export default function App(): JSX.Element {
   const { t } = useTranslation();
   const started = useGame((s) => s.started);
   const scene = useGame((s) => s.scene);
+  const storyShown = useGame((s) => s.family?.storyShown ?? false);
   const [modal, setModal] = useState<Modal>(null);
   const lang = useSettings((s) => s.lang);
   const theme = useSettings((s) => s.theme);
@@ -83,7 +85,13 @@ export default function App(): JSX.Element {
 
       {modal === 'settings' && <SettingsMenu onClose={() => setModal(null)} />}
       {modal === 'save' && <SaveLoadMenu onClose={() => setModal(null)} />}
-      {modal === 'newcareer' && <NewCareerModal onClose={() => setModal(null)} onStart={() => setModal(null)} />}
+      {modal === 'newcareer' && (
+        <NewCareerModal onClose={() => setModal(null)} onStart={() => setModal('backstory')} />
+      )}
+      {modal === 'backstory' && <BackstoryModal onClose={() => setModal(null)} />}
+      {started && scene !== 'title' && !storyShown && modal === null && (
+        <BackstoryModal onClose={() => useGame.getState().markStoryShown()} />
+      )}
 
       <div className="hidden">{t('app.title')}</div>
     </div>

@@ -17,7 +17,7 @@ const DIFFS: DifficultyId[] = ['easy', 'normal', 'hard'];
 
 export function NewCareerModal({ onClose, onStart }: Props): JSX.Element {
   const { t } = useTranslation();
-  const [name, setName] = useState('Kapitány');
+  const [name, setName] = useState('Pegya');
   const [nation, setNation] = useState<NationId>('pirate');
   const [era, setEra] = useState<number>(1680);
   const [difficulty, setDifficulty] = useState<DifficultyId>('normal');
@@ -40,10 +40,11 @@ export function NewCareerModal({ onClose, onStart }: Props): JSX.Element {
         </div>
         <label className="block text-xs mb-1 opacity-80">{t('career.name')}</label>
         <input
-          className="w-full mb-3 px-3 py-2 rounded bg-sea-900 ring-1 ring-parchment-200/30 text-sm"
+          className="w-full mb-1 px-3 py-2 rounded bg-sea-900 ring-1 ring-parchment-200/30 text-sm"
           value={name}
           onChange={(e) => setName(e.target.value.slice(0, 24))}
         />
+        <p className="text-[10px] opacity-50 mb-3 italic">{t('career.hint')}</p>
         <div className="text-xs mb-1 opacity-80">{t('career.nation')}</div>
         <div className="grid grid-cols-3 gap-1 mb-3">
           {NATIONS.map((n) => (

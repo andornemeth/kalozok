@@ -22,7 +22,7 @@ const TONES: Record<string, ShipPalette> = {
   player: {
     hullDark: 0x3a2010, hullMid: 0x6b3e1f, hullLight: 0x8b5a2b,
     goldTrim: 0xe0b24f, sailLight: 0xfbf5e3, sailMid: 0xd9c99a, sailDark: 0x8a7a4a,
-    mast: 0x3a2a1a, flag: 0x0a0a0a, flagStripe: 0xfbf5e3,
+    mast: 0x3a2a1a, flag: 0xc0392b, flagStripe: 0xf2c94c,
   },
   enemy: {
     hullDark: 0x2a1515, hullMid: 0x5c2a22, hullLight: 0x8a3d2e,
@@ -110,7 +110,90 @@ export class PreloadScene extends Phaser.Scene {
     this.makeDuelist('duelist-enemy', 0x5c2a22, 0xb94a3b, 0xff6a3d);
     this.makeSwordSwing('sword-swing');
 
+    this.makeSunflower('sunflower-emblem');
+    this.makePaprikaRibbon('paprika-ribbon');
+    this.makeHomeStar('home-star');
+
     this.scene.start('World');
+  }
+
+  // ---------- Vajdasági motívumok ----------
+
+  private makeSunflower(key: string): void {
+    const size = 24;
+    const g = this.add.graphics();
+    const cx = size / 2;
+    const cy = size / 2;
+    // Szirmok — 8 sárga
+    g.fillStyle(0xf2c94c, 1);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const x = cx + Math.cos(a) * 8;
+      const y = cy + Math.sin(a) * 8;
+      g.fillCircle(x, y, 3.5);
+    }
+    // Közép - sötét magmag
+    g.fillStyle(0x6b3e1f, 1);
+    g.fillCircle(cx, cy, 4.5);
+    g.fillStyle(0x3a2010, 1);
+    g.fillCircle(cx, cy, 2.5);
+    // Apró pontok a magra
+    g.fillStyle(0xe0b24f, 1);
+    g.fillCircle(cx - 1, cy - 1, 0.6);
+    g.fillCircle(cx + 1, cy + 1, 0.6);
+    g.generateTexture(key, size, size);
+    g.destroy();
+  }
+
+  private makePaprikaRibbon(key: string): void {
+    const w = 32;
+    const h = 10;
+    const g = this.add.graphics();
+    // Piros paprikák fűzve
+    for (let i = 0; i < 4; i++) {
+      const x = 3 + i * 8;
+      g.fillStyle(0xc0392b, 1);
+      g.fillTriangle(x, 3, x + 4, 3, x + 2, 9);
+      g.fillStyle(0x88e07b, 1);
+      g.fillRect(x + 1, 1, 2, 2);
+    }
+    // Zsinór
+    g.lineStyle(1, 0x3a2a1a, 0.8);
+    g.lineBetween(0, 2, w, 2);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  private makeHomeStar(key: string): void {
+    const size = 20;
+    const g = this.add.graphics();
+    const cx = size / 2;
+    const cy = size / 2;
+    // 5 ágú csillag — magyar motívum
+    const pts: number[] = [];
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? 8 : 4;
+      const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+      pts.push(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    }
+    g.fillStyle(0xf2c94c, 1);
+    g.fillPoints(
+      pts.reduce<Phaser.Geom.Point[]>((acc, v, i) => {
+        if (i % 2 === 0) acc.push(new Phaser.Geom.Point(v, pts[i + 1]!));
+        return acc;
+      }, []),
+      true,
+    );
+    g.lineStyle(1, 0xc0392b, 1);
+    g.strokePoints(
+      pts.reduce<Phaser.Geom.Point[]>((acc, v, i) => {
+        if (i % 2 === 0) acc.push(new Phaser.Geom.Point(v, pts[i + 1]!));
+        return acc;
+      }, []),
+      true,
+    );
+    g.generateTexture(key, size, size);
+    g.destroy();
   }
 
   // ---------- Hajók ----------

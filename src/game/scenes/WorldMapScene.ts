@@ -255,6 +255,18 @@ export class WorldMapScene extends Phaser.Scene {
         const fortIcon = this.add.image(-14, -4, 'fort-icon').setOrigin(0.5, 1);
         items.unshift(fortIcon);
       }
+      if (p.homePort) {
+        const sun = this.add.image(0, -30, 'sunflower-emblem').setOrigin(0.5, 0.5);
+        this.tweens.add({
+          targets: sun,
+          scale: { from: 0.9, to: 1.1 },
+          yoyo: true,
+          repeat: -1,
+          duration: 1500,
+          ease: 'Sine.easeInOut',
+        });
+        items.unshift(sun);
+      }
       c.add(items);
       c.setDepth(4);
       this.portMarkers.push(c);
@@ -267,7 +279,7 @@ export class WorldMapScene extends Phaser.Scene {
 
   private spawnPlayer(): void {
     const saved = useGame.getState().worldPos;
-    const start = PORTS.find((p) => p.id === 'port-royal') ?? PORTS[0]!;
+    const start = PORTS.find((p) => p.homePort) ?? PORTS[0]!;
     let x = saved?.x ?? start.x;
     let y = saved?.y ?? start.y + 80;
     if (saved == null) {

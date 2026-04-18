@@ -35,7 +35,7 @@ interface Gate {
 }
 
 const UNIT_LABEL: Record<UnitType, string> = {
-  buccaneer: 'KAL', soldier: 'KAT', cavalry: 'LOV', cannon: 'ÁGY',
+  buccaneer: 'HAJDÚ', soldier: 'KATONA', cavalry: 'HUSZÁR', cannon: 'ÁGYÚ',
 };
 const UNIT_TEX: Record<UnitType, string> = {
   buccaneer: 'unit-buccaneer', soldier: 'unit-soldier', cavalry: 'unit-cavalry', cannon: 'unit-cannon',
@@ -270,6 +270,8 @@ export class LandBattleScene extends Phaser.Scene {
     this.spawnUnit('player', this.selected, lane);
     this.refreshLabels();
     Audio.click();
+    if (this.selected === 'cavalry' && Math.random() < 0.5) this.flashStatus('Huszárok, rajta!');
+    else if (this.selected === 'buccaneer' && Math.random() < 0.5) this.flashStatus('Hajdúk, most!');
   }
 
   private spawnUnit(side: Side, type: UnitType, lane: number): void {
@@ -491,7 +493,7 @@ export class LandBattleScene extends Phaser.Scene {
       checkQuestCompletion(useGame.getState(), (_id, title, reward) =>
         bus.emit('toast', { message: `Cél teljesült: ${title} (+${reward}g)`, kind: 'good' }),
       );
-      this.flashEndBanner('DIADAL! +' + loot + ' arany', 0x2d5a2d);
+      this.flashEndBanner('DIADAL! +' + loot + ' arany', 0x2d5a2d, '„Tudtam hogy menni fog. Gyere haza. — Anikó"');
       Audio.success();
     } else {
       g.adjustMorale(-12);
@@ -499,22 +501,32 @@ export class LandBattleScene extends Phaser.Scene {
       this.flashEndBanner('VISSZAVERTEK', 0x7a2e0e);
       Audio.failure();
     }
-    this.time.delayedCall(1900, () => {
+    this.time.delayedCall(2400, () => {
       bus.emit('land:end', { outcome });
       this.scene.start('World');
     });
   }
 
-  private flashEndBanner(text: string, color: number): void {
+  private flashEndBanner(text: string, color: number, subtitle?: string): void {
     const cx = this.scale.width / 2;
     const cy = this.scale.height / 2;
-    const bg = this.add.rectangle(cx, cy, this.scale.width, 90, color, 0.9).setDepth(50);
+    const bg = this.add.rectangle(cx, cy, this.scale.width, subtitle ? 140 : 90, color, 0.92).setDepth(50);
     const label = this.add
-      .text(cx, cy, text, {
+      .text(cx, subtitle ? cy - 20 : cy, text, {
         fontFamily: '"Press Start 2P"', fontSize: '18px', color: '#fbf5e3',
         stroke: '#04141a', strokeThickness: 5,
       })
       .setOrigin(0.5).setDepth(51);
-    this.tweens.add({ targets: [bg, label], alpha: { from: 0, to: 1 }, duration: 280 });
+    const targets: Phaser.GameObjects.GameObject[] = [bg, label];
+    if (subtitle) {
+      const sub = this.add
+        .text(cx, cy + 24, subtitle, {
+          fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', color: '#fbf5e3',
+          fontStyle: 'italic', align: 'center', wordWrap: { width: this.scale.width - 60 },
+        })
+        .setOrigin(0.5).setDepth(51);
+      targets.push(sub);
+    }
+    this.tweens.add({ targets, alpha: { from: 0, to: 1 }, duration: 280 });
   }
 }

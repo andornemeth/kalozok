@@ -7,11 +7,12 @@ import { TradeDialog } from './dialogs/TradeDialog';
 import { TavernDialog } from './dialogs/TavernDialog';
 import { ShipyardDialog } from './dialogs/ShipyardDialog';
 import { GovernorDialog } from './dialogs/GovernorDialog';
+import { TanyaDialog } from './dialogs/TanyaDialog';
 import { bus } from '@/game/EventBus';
 import { useEffect } from 'react';
 import { checkQuestCompletion } from '@/game/systems/QuestSystem';
 
-type Sub = 'tavern' | 'merchant' | 'shipyard' | 'governor' | null;
+type Sub = 'tavern' | 'merchant' | 'shipyard' | 'governor' | 'tanya' | null;
 
 export function PortMenu(): JSX.Element | null {
   const { t } = useTranslation();
@@ -57,7 +58,9 @@ export function PortMenu(): JSX.Element | null {
       >
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h2 className="font-pixel text-gold text-lg">{port.name}</h2>
+            <h2 className="font-pixel text-gold text-lg">
+              {port.homePort ? '🌻 ' : ''}{port.name}
+            </h2>
             <p className="text-xs opacity-70">{t(`nations.${port.nation}`)}</p>
           </div>
           <button className="pixel-btn ghost !text-[9px]" onClick={leavePort}>
@@ -65,9 +68,19 @@ export function PortMenu(): JSX.Element | null {
           </button>
         </div>
 
-        <p className="mt-2 text-sm font-serif italic">{t('port.welcome', { port: port.name })}</p>
+        <p className="mt-2 text-sm font-serif italic">
+          {port.homePort ? t('port.welcomeHome', { port: port.name }) : t('port.welcome', { port: port.name })}
+        </p>
+        {port.flavorKey && (
+          <p className="mt-1 text-[11px] opacity-70 font-serif">{t(port.flavorKey)}</p>
+        )}
 
         <div className="mt-4 grid grid-cols-2 gap-2">
+          {port.homePort && (
+            <button className="pixel-btn primary col-span-2" onClick={() => setSub('tanya')}>
+              🏡 {t('port.tanya')}
+            </button>
+          )}
           <button className="pixel-btn" onClick={() => setSub('tavern')}>
             🍺 {t('port.tavern')}
           </button>
@@ -98,6 +111,7 @@ export function PortMenu(): JSX.Element | null {
         {sub === 'tavern' && <TavernDialog port={port} onClose={() => setSub(null)} />}
         {sub === 'shipyard' && <ShipyardDialog port={port} onClose={() => setSub(null)} />}
         {sub === 'governor' && <GovernorDialog port={port} onClose={() => setSub(null)} />}
+        {sub === 'tanya' && <TanyaDialog onClose={() => setSub(null)} />}
       </AnimatePresence>
     </div>
   );

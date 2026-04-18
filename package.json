@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Modern mobil-barát Pirates!-ihletésű kalózjáték",
+  "description": "Kalózok – Pegya, a Karib-tenger ura! Vajdasági ihletésű, mobilbarát kalandjáték.",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",

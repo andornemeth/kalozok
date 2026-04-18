@@ -12,6 +12,15 @@ interface Props {
   onClose: () => void;
 }
 
+function priceVerdict(price: number, base: number): { label: string; tone: string } {
+  const ratio = price / base;
+  if (ratio < 0.7) return { label: 'merchant.priceGreat', tone: 'text-emerald-300' };
+  if (ratio < 0.9) return { label: 'merchant.priceGood', tone: 'text-emerald-200' };
+  if (ratio < 1.15) return { label: 'merchant.priceFair', tone: 'text-parchment-200' };
+  if (ratio < 1.4) return { label: 'merchant.priceBad', tone: 'text-amber-300' };
+  return { label: 'merchant.priceTerrible', tone: 'text-rose-300' };
+}
+
 export function TradeDialog({ port, onClose }: Props): JSX.Element {
   const { t } = useTranslation();
   const days = useGame((s) => s.career.daysAtSea);
@@ -24,22 +33,41 @@ export function TradeDialog({ port, onClose }: Props): JSX.Element {
   const holdUsed = useMemo(() => GOODS.reduce((sum, g) => sum + cargo[g.id] * g.volume, 0), [cargo]);
   const holdMax = SHIPS[ship.class].hold;
 
-  const buy = (id: GoodId) => {
-    const price = prices.get(id) ?? 0;
+  const buy = (id: GoodId, qty: number) => {
     const good = GOODS.find((g) => g.id === id)!;
-    if (gold < price) return;
-    if (holdUsed + good.volume > holdMax) return;
-    if ((stocks.get(id) ?? 0) <= 0) return;
-    if (!useGame.getState().spendGold(price)) return;
-    useGame.getState().addCargo(id, 1);
-    stocks.set(id, (stocks.get(id) ?? 1) - 1);
+    const price = prices.get(id) ?? 0;
+    let bought = 0;
+    for (let i = 0; i < qty; i++) {
+      if (gold - bought * price < price) break;
+      if (holdUsed + (bought + 1) * good.volume > holdMax) break;
+      const stock = (stocks.get(id) ?? 0) - bought;
+      if (stock <= 0) break;
+      bought++;
+    }
+    if (bought === 0) return;
+    const totalCost = bought * price;
+    if (!useGame.getState().spendGold(totalCost)) return;
+    useGame.getState().addCargo(id, bought);
+    stocks.set(id, (stocks.get(id) ?? bought) - bought);
   };
 
-  const sell = (id: GoodId) => {
-    if (cargo[id] <= 0) return;
-    const price = Math.round((prices.get(id) ?? 0) * 0.9);
-    useGame.getState().removeCargo(id, 1);
+  const sell = (id: GoodId, qty: number) => {
+    const have = cargo[id];
+    const sold = Math.min(have, qty);
+    if (sold <= 0) return;
+    const price = Math.round((prices.get(id) ?? 0) * 0.9) * sold;
+    useGame.getState().removeCargo(id, sold);
     useGame.getState().addGold(price);
+  };
+
+  const maxBuy = (id: GoodId) => {
+    const good = GOODS.find((g) => g.id === id)!;
+    const price = prices.get(id) ?? 0;
+    if (price <= 0 || good.volume <= 0) return 0;
+    const byGold = Math.floor(gold / price);
+    const byHold = Math.floor((holdMax - holdUsed) / good.volume);
+    const byStock = stocks.get(id) ?? 0;
+    return Math.max(0, Math.min(byGold, byHold, byStock));
   };
 
   return (
@@ -49,36 +77,81 @@ export function TradeDialog({ port, onClose }: Props): JSX.Element {
       exit={{ y: 40, opacity: 0 }}
       className="pixel-card w-full max-w-md absolute"
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <h3 className="font-pixel text-gold text-sm">{t('merchant.title')}</h3>
         <button className="pixel-btn ghost !text-[9px]" onClick={onClose}>
           ✕
         </button>
       </div>
-      <div className="text-[11px] mb-2 opacity-80">
-        💰 {gold} · 📦 {holdUsed}/{holdMax}
+      <p className="text-[10px] italic opacity-70 mb-2">{t('merchant.flavor')}</p>
+      <div className="text-[11px] mb-2 flex justify-between">
+        <span>💰 {gold}</span>
+        <span>📦 {holdUsed}/{holdMax}</span>
       </div>
-      <div className="max-h-[50vh] overflow-y-auto pr-1">
+      <div className="max-h-[55vh] overflow-y-auto pr-1">
         {GOODS.map((g) => {
           const price = prices.get(g.id) ?? 0;
           const stock = stocks.get(g.id) ?? 0;
           const have = cargo[g.id];
-          const highlight = port.specialty === g.id ? 'text-emerald-300' : port.scarcity === g.id ? 'text-rose-300' : '';
+          const verdict = priceVerdict(price, g.basePrice);
+          const isSpecialty = port.specialty === g.id;
+          const isScarcity = port.scarcity === g.id;
+          const max = maxBuy(g.id);
           return (
-            <div key={g.id} className={`flex items-center justify-between gap-2 py-1.5 border-b border-parchment-200/10 ${highlight}`}>
-              <div className="flex-1">
-                <div className="text-xs font-semibold">{t(`goods.${g.id}`)}</div>
-                <div className="text-[10px] opacity-60">
-                  {t('merchant.stock')}: {stock} · {t('merchant.cargo')}: {have}
+            <div key={g.id} className="py-2 border-b border-parchment-200/10">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-semibold">{t(`goods.${g.id}`)}</span>
+                    {isSpecialty && <span className="text-[9px] px-1 rounded bg-emerald-700/50">🌻</span>}
+                    {isScarcity && <span className="text-[9px] px-1 rounded bg-rose-700/50">🔥</span>}
+                  </div>
+                  <div className="text-[10px] opacity-60">
+                    {t('merchant.stock')}: {stock} · {t('merchant.cargo')}: {have}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className={`text-xs font-semibold ${verdict.tone}`}>{price}g</div>
+                  <div className={`text-[9px] ${verdict.tone} opacity-80`}>{t(verdict.label)}</div>
                 </div>
               </div>
-              <div className="text-xs w-14 text-right">{price}g</div>
-              <button className="pixel-btn !py-1 !px-2 !text-[9px]" disabled={stock <= 0 || gold < price} onClick={() => buy(g.id)}>
-                +
-              </button>
-              <button className="pixel-btn ghost !py-1 !px-2 !text-[9px]" disabled={have <= 0} onClick={() => sell(g.id)}>
-                −
-              </button>
+              <div className="flex gap-1 mt-1.5">
+                <button
+                  className="pixel-btn !py-1 !px-2 !text-[9px] flex-1"
+                  disabled={max < 1}
+                  onClick={() => buy(g.id, 1)}
+                >
+                  +1
+                </button>
+                <button
+                  className="pixel-btn !py-1 !px-2 !text-[9px] flex-1"
+                  disabled={max < 5}
+                  onClick={() => buy(g.id, 5)}
+                >
+                  +5
+                </button>
+                <button
+                  className="pixel-btn primary !py-1 !px-2 !text-[9px] flex-1"
+                  disabled={max < 1}
+                  onClick={() => buy(g.id, max)}
+                >
+                  {t('merchant.buyMax')} ({max})
+                </button>
+                <button
+                  className="pixel-btn ghost !py-1 !px-2 !text-[9px] flex-1"
+                  disabled={have < 1}
+                  onClick={() => sell(g.id, 1)}
+                >
+                  −1
+                </button>
+                <button
+                  className="pixel-btn ghost !py-1 !px-2 !text-[9px] flex-1"
+                  disabled={have < 1}
+                  onClick={() => sell(g.id, have)}
+                >
+                  {t('merchant.sellAll')}
+                </button>
+              </div>
             </div>
           );
         })}

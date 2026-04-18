@@ -9,6 +9,7 @@ import { Particles } from '@/game/systems/Particles';
 import { WindSystem } from '@/game/systems/WindSystem';
 import { checkQuestCompletion } from '@/game/systems/QuestSystem';
 import type { NationId } from '@/game/data/ports';
+import i18n from '@/i18n';
 
 type Ammo = 'round' | 'chain' | 'grape';
 type EnemyKind = 'pirate' | 'navy' | 'merchant';
@@ -77,6 +78,7 @@ export class NavalBattleScene extends Phaser.Scene {
     this.scale.on('resize', () => this.layoutHud());
     this.layoutHud();
     Audio.wave();
+    this.time.delayedCall(500, () => this.battleCry('naval.cryRally'));
   }
 
   // --- World setup ---
@@ -290,6 +292,7 @@ export class NavalBattleScene extends Phaser.Scene {
     }
     this.volley(this.player, this.enemy, this.ammo);
     this.player.fireT = this.elapsed;
+    if (Math.random() < 0.35) this.battleCry('naval.cryFire');
     vibrate('medium');
   }
 
@@ -348,11 +351,67 @@ export class NavalBattleScene extends Phaser.Scene {
   }
 
   private applyHit(target: CombatShip, ammo: Ammo): void {
-    if (ammo === 'round') target.hull = Math.max(0, target.hull - Phaser.Math.Between(5, 11));
-    else if (ammo === 'chain') target.sail = Math.max(0, target.sail - Phaser.Math.Between(5, 11));
-    else target.crew = Math.max(0, target.crew - Phaser.Math.Between(2, 7));
-    target.ship.setTint(0xff8080);
+    let dmg = 0;
+    let tone = 0xff8080;
+    if (ammo === 'round') {
+      dmg = Phaser.Math.Between(5, 11);
+      target.hull = Math.max(0, target.hull - dmg);
+    } else if (ammo === 'chain') {
+      dmg = Phaser.Math.Between(5, 11);
+      target.sail = Math.max(0, target.sail - dmg);
+      tone = 0xa0c8ff;
+    } else {
+      dmg = Phaser.Math.Between(2, 7);
+      target.crew = Math.max(0, target.crew - dmg);
+      tone = 0xffc070;
+    }
+    target.ship.setTint(tone);
     this.time.delayedCall(110, () => target.ship.clearTint());
+    this.floatDamage(target.ship.x, target.ship.y - 40, dmg, ammo);
+    if (target === this.enemy && Math.random() < 0.2) {
+      this.battleCry('naval.cryHit');
+    }
+  }
+
+  private floatDamage(x: number, y: number, dmg: number, ammo: Ammo): void {
+    const color = ammo === 'round' ? '#ffb37a' : ammo === 'chain' ? '#a0c8ff' : '#ffd86a';
+    const txt = this.add
+      .text(x, y, `-${dmg}`, {
+        fontFamily: '"Press Start 2P"', fontSize: '12px', color,
+        stroke: '#04141a', strokeThickness: 3,
+      })
+      .setOrigin(0.5).setDepth(20);
+    this.tweens.add({
+      targets: txt,
+      y: y - 40,
+      alpha: { from: 1, to: 0 },
+      duration: 900,
+      ease: 'Quad.easeOut',
+      onComplete: () => txt.destroy(),
+    });
+  }
+
+  private lastCry = 0;
+  private battleCry(key: string): void {
+    if (this.elapsed - this.lastCry < 2200) return;
+    this.lastCry = this.elapsed;
+    const msg = i18n.t(key);
+    const txt = this.add
+      .text(this.scale.width / 2, this.scale.height / 2 - 80, msg, {
+        fontFamily: '"Press Start 2P"', fontSize: '12px', color: '#fbf5e3',
+        stroke: '#c0392b', strokeThickness: 4,
+        align: 'center', wordWrap: { width: this.scale.width - 60 },
+      })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(40).setAlpha(0);
+    this.tweens.add({
+      targets: txt,
+      alpha: { from: 0, to: 1 },
+      y: '-=10',
+      duration: 180,
+      yoyo: true,
+      hold: 900,
+      onComplete: () => txt.destroy(),
+    });
   }
 
   // --- Aktiók ---
@@ -368,8 +427,9 @@ export class NavalBattleScene extends Phaser.Scene {
       this.flashHint('Lágyítsd meg előbb!');
       return;
     }
+    this.battleCry('naval.cryBoard');
     this.ended = true;
-    this.scene.start('Duel', { enemyCrew: this.enemy.crew, enemyKind: this.enemyKind });
+    this.time.delayedCall(600, () => this.scene.start('Duel', { enemyCrew: this.enemy.crew, enemyKind: this.enemyKind }));
   }
 
   private flee(): void {
@@ -414,7 +474,7 @@ export class NavalBattleScene extends Phaser.Scene {
     checkQuestCompletion(useGame.getState(), (_id, title, reward) =>
       bus.emit('toast', { message: `Cél teljesült: ${title} (+${reward}g)`, kind: 'good' }),
     );
-    bus.emit('toast', { message: `Diadal! +${loot} arany`, kind: 'good' });
+    bus.emit('toast', { message: `${i18n.t('naval.cryVictory')} +${loot} arany`, kind: 'good' });
     Audio.success();
     bus.emit('naval:end', { outcome: 'victory' });
     this.scene.start('World');
@@ -428,7 +488,7 @@ export class NavalBattleScene extends Phaser.Scene {
     g.damageShip(g.ship.hull, g.ship.sail, Math.max(0, g.ship.crew - 3));
     g.addGold(-penalty);
     g.adjustMorale(-15);
-    bus.emit('toast', { message: `Vereség! −${penalty} arany`, kind: 'bad' });
+    bus.emit('toast', { message: `${i18n.t('naval.cryDefeat')} −${penalty} arany`, kind: 'bad' });
     Audio.failure();
     bus.emit('naval:end', { outcome: 'defeat' });
     this.scene.start('World');

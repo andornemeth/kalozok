@@ -1,8 +1,9 @@
 {
   "app": {
     "title": "Pirates",
-    "subtitle": "Master of the Caribbean",
-    "tagline": "A modern adventure across the seven seas, cozy on a phone."
+    "titleFull": "Pirates – Pegya, Master of the Caribbean!",
+    "subtitle": "Pegya, the pirate of Zenta",
+    "tagline": "A Vojvodinian heart on the Caribbean Sea — sail, cannon, paprika."
   },
   "title": {
     "new": "New career",
@@ -10,7 +11,8 @@
     "daily": "Daily challenge",
     "settings": "Settings",
     "credits": "Credits",
-    "install": "Install"
+    "install": "Install",
+    "legend": "Pegya's legend"
   },
   "settings": {
     "title": "Settings",
@@ -40,7 +42,8 @@
     "difficulty": "Difficulty",
     "easy": "Greenhorn",
     "normal": "Sea wolf",
-    "hard": "Nightmare"
+    "hard": "Nightmare",
+    "hint": "Default: Pegya, the pirate of Zenta"
   },
   "nations": {
     "england": "England",
@@ -70,25 +73,47 @@
     "flee": "Flee"
   },
   "port": {
-    "welcome": "Welcome to {{port}}",
+    "welcome": "Welcome to {{port}}, captain!",
+    "welcomeHome": "You're home, Pegya! {{port}} embraces you.",
     "tavern": "Tavern",
     "merchant": "Merchant",
-    "shipyard": "Shipyard",
+    "shipyard": "Shipwright",
     "governor": "Governor",
+    "tanya": "Homestead (Anikó)",
     "leave": "Back to the sea",
     "jail": "Jail"
   },
+  "tanya": {
+    "title": "The Zenta homestead",
+    "greeting": "Anikó runs out to meet you, the two girls laughing by candlelight.",
+    "rest": "Rest with Anikó",
+    "rested": "You slept in a clean bed. +{{morale}} morale, +{{food}} food.",
+    "giveGold": "Leave gold for the family ({{amount}})",
+    "gaveGold": "Tears well up in Anikó's eyes: \"Thank you, Pegya.\"",
+    "notEnoughGold": "You don't have that much gold.",
+    "readLetter": "Read Anikó's letter",
+    "playWithGirls": "Play with Csillag and Boróka",
+    "playedWithGirls": "An hour of hide-and-seek in the cornfield. Pegya's heart grows full. +{{fame}} fame.",
+    "anikoName": "Anikó",
+    "csillagName": "Csillag",
+    "borokaName": "Boróka",
+    "letterIntro": "\"My dear Pegya! The girls asked about the sea again today. Csillag learned a new song, Boróka watches over the cat. Take care of yourself — we wait for you.\" — Anikó",
+    "farewell": "I must go, my love.",
+    "familyStatus": "Family bond: {{total}}/100"
+  },
   "tavern": {
-    "title": "The Merry Mug",
+    "title": "The Csárda",
     "hire": "Recruit ({{cost}} gold)",
     "rumors": "Listen to rumors",
     "drink": "Drink",
     "noCrew": "No willing sailors today.",
     "hired": "{{count}} new sailors joined.",
-    "rumor": "A drunken sailor whispers…"
+    "rumor": "A drunken sailor whispers…",
+    "flavor": "The innkeeper offers a bowl of paprika stew. A cimbalom plays by the hearth."
   },
   "merchant": {
     "title": "Merchant stall",
+    "subtitle": "{{name}}'s wares, at {{port}}'s market",
     "buy": "Buy",
     "sell": "Sell",
     "stock": "Stock",
@@ -96,15 +121,34 @@
     "hold": "Hold",
     "cargo": "Cargo",
     "notEnoughGold": "Not enough gold!",
-    "notEnoughHold": "Hold is full!"
+    "notEnoughHold": "Hold is full!",
+    "priceGreat": "Great price!",
+    "priceGood": "Good price",
+    "priceFair": "Fair",
+    "priceBad": "Expensive",
+    "priceTerrible": "Robbery!",
+    "specialty": "Local specialty — cheap!",
+    "scarcity": "Scarce — sells dear!",
+    "buyX": "Buy {{n}}",
+    "sellX": "Sell {{n}}",
+    "buyMax": "Max",
+    "sellAll": "All",
+    "profit": "Expected profit: {{g}}g",
+    "flavor": "\"I buy, I sell — never tobacco, always tobacco!\" — Uncle Gyuri, the merchant"
   },
   "shipyard": {
-    "title": "Shipyard",
-    "repair": "Repair ({{cost}} gold)",
+    "title": "Shipwright — Lőrinc Kovács's workshop",
+    "subtitle": "\"A good ship is like a good wife: both need upkeep.\"",
+    "repair": "Full repair ({{cost}} gold)",
+    "patchRepair": "Quick patch ({{cost}} gold)",
+    "patchDone": "Ship patched. You can sail tomorrow.",
     "upgradeCannons": "More cannons ({{cost}})",
     "upgradeSails": "Better sails ({{cost}})",
     "newShip": "New ship",
-    "repaired": "Ship is shipshape."
+    "repaired": "Ship is shipshape — gleams like Danube water.",
+    "hullStatus": "Hull: {{current}}/{{max}}",
+    "sailStatus": "Sail: {{current}}/{{max}}",
+    "breakdown": "Hull repair: {{hull}}g · Sail patch: {{sail}}g"
   },
   "governor": {
     "title": "Governor's palace",
@@ -127,7 +171,13 @@
     "sailHits": "Sail hits",
     "crewHits": "Crew casualties",
     "yourTurn": "Your turn",
-    "enemyTurn": "Enemy turn"
+    "enemyTurn": "Enemy turn",
+    "cryRally": "Come on, lads! Zenta blood never runs like water!",
+    "cryFire": "Fire! For God's sake!",
+    "cryHit": "Hit! She's sinking!",
+    "cryBoard": "Swords out, Hungarian pirates!",
+    "cryVictory": "We won! Home to Anikó!",
+    "cryDefeat": "Emergency! Unfurl the sails!"
   },
   "duel": {
     "title": "Duel",
@@ -143,16 +193,20 @@
     "defeat": "Defeated."
   },
   "land": {
-    "title": "Land battle",
-    "buccaneer": "Buccaneer",
+    "title": "City siege",
+    "buccaneer": "Hajdú",
     "soldier": "Soldier",
-    "cavalry": "Cavalry",
+    "cavalry": "Hussar",
+    "cannon": "Cannon",
     "leftFlank": "Left flank",
     "center": "Center",
     "rightFlank": "Right flank",
     "deploy": "Deploy",
-    "victory": "The town has fallen!",
-    "defeat": "Repelled."
+    "victory": "The town has fallen! Pegya's flag flies on the tower.",
+    "defeat": "Repelled. The hajdús retreat, weary.",
+    "battleCryHussar": "Hussars, charge!",
+    "battleCryHajdu": "Hajdús, now!",
+    "anikoLetter": "\"I knew you could do it. Come home. — Anikó\""
   },
   "treasure": {
     "title": "Treasure hunt",
@@ -181,13 +235,15 @@
     "yes": "Yes",
     "no": "No",
     "back": "Back",
-    "next": "Next"
+    "next": "Next",
+    "ok": "OK"
   },
   "tutorial": {
     "move": "Tap anywhere on the water to sail there.",
     "wind": "Small arrows show wind direction — into it you sail slower.",
     "port": "Tap the anchor to dock at a port.",
-    "combat": "In combat positioning is everything: turn broadside to use your cannons."
+    "combat": "In combat positioning is everything: turn broadside to use your cannons.",
+    "home": "Zenta is your home — Anikó and the girls wait there. Visit often!"
   },
   "goods": {
     "food": "Food",
@@ -195,8 +251,40 @@
     "sugar": "Sugar",
     "tobacco": "Tobacco",
     "cloth": "Cloth",
-    "spice": "Spice",
+    "spice": "Paprika",
     "cannons": "Cannons",
     "gunpowder": "Gunpowder"
+  },
+  "backstory": {
+    "title": "Pegya's Legend",
+    "paragraph1": "Zenta, 1678. Born on the banks of the Tisza, Pegya was a fisherman like his father and grandfather. Quick-witted, brave of heart, and never silent of tongue, he stood out in the village. During the Ottoman-Habsburg clashes, raiders struck the farm one night — Pegya protected Anikó, the miller's daughter, but their house burned down.",
+    "paragraph2": "They fled west for months, to Trieste, and boarded a ship. The ship lost its way, and within months Pegya was walking the deck on the Caribbean Sea. Two daughters were born on the long voyage: Csillag, whose eyes shine like the night sky, and Boróka, as stubborn as a juniper tree.",
+    "paragraph3": "Pegya signed on as a sailor with a Spanish captain, but the captain cheated him out of his wages. On a stormy night, Pegya took over the ship and raised his own flag: red, blue, and yellow bands, with a sunflower in the middle. Since then, no one dares cross the pirate of Zenta on the Caribbean.",
+    "paragraph4": "Anikó and the girls wait on an abandoned homestead by the Caribbean shore — Pegya christened it Zenta. From here he sails to every adventure, and returns after every battle. This is his story.",
+    "begin": "Let the adventure begin!"
+  },
+  "ports": {
+    "szabadka": { "flavor": "The heart of Bácska — a big market, a bigger tongue." },
+    "ujvidek": { "flavor": "Capital of the English colony. Ornate buildings, even more ornate politics." },
+    "topolya": { "flavor": "Sugar plantations and restless settlers." },
+    "nagybecskerek": { "flavor": "Grain stores, wine cellars — load up your ship and she'll sail to England." },
+    "zombor": { "flavor": "Spanish governor, golden chains, suspicion. No one trusts anyone here." },
+    "pancsova": { "flavor": "School of cannon masters — if you have coin, you learn to shoot here." },
+    "versec": { "flavor": "In the shadow of the Spanish fort, sugarcane grows — and conspiracy." },
+    "kikinda": { "flavor": "Rum distillery, sailors, lovers. The very air is intoxicating." },
+    "obecse": { "flavor": "Spice warehouse. The paprika dust will hit your eyes before you bargain the price." },
+    "apatin": { "flavor": "A fishing port turned Spanish supply base. Powder, barrels, danger." },
+    "magyarkanizsa": { "flavor": "Linen weavers and Hungarian peasant girls — their purses loose with Dutch coin." },
+    "fehertemplom": { "flavor": "Tobacco fields, white walls, black hearts." },
+    "temerin": { "flavor": "The Spanish main port. Silver fleets dock here." },
+    "szenttamas": { "flavor": "A small town with a big weaving mill." },
+    "palics": { "flavor": "The beloved little resort. They rarely fire here, often dance." },
+    "ada": { "flavor": "French textiles, French perfumes — Pegya buys kerchiefs here for Anikó." },
+    "torokbecse": { "flavor": "French rum distillery. The innkeeper is an old friend of Pegya's." },
+    "csoka": { "flavor": "Spice, swamp, mosquitoes. Small but valuable." },
+    "kula": { "flavor": "Dutch cloth stalls and barely-hidden smuggling." },
+    "martonos": { "flavor": "Dutch powder magazine — careful with the pipe!" },
+    "horgos": { "flavor": "Pirate haven: no one asks where you came from." },
+    "zenta": { "flavor": "Pegya's home. Anikó cooks paprikás, Csillag and Boróka play in the small forest." }
   }
 }
