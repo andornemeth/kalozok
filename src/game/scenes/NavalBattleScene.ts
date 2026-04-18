@@ -200,6 +200,10 @@ export class NavalBattleScene extends Phaser.Scene {
     this.createHud();
     this.createControls();
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onWorldTap(p));
+    // Biztonsági release: ha az ujj bárhol felemelkedik (akár a képernyőn
+    // kívül), a kézi forgatás leáll — elkerüli a „beragadt turn"-t.
+    this.input.on('pointerup', () => { if (this.player) this.player.turning = 0; });
+    this.input.on('pointerupoutside', () => { if (this.player) this.player.turning = 0; });
     // A tutorialCombat flag-et a React-es NavalTutorial overlay állítja, nem itt
     this.scale.on('resize', () => this.layoutHud());
     this.layoutHud();
@@ -471,16 +475,16 @@ export class NavalBattleScene extends Phaser.Scene {
       return c;
     };
 
-    // Bal hüvelykujj — forgató gombok
-    this.leftTurnBtn = holdBtn('◀', 0x145f65, 78, 78,
+    // Bal hüvelykujj — forgató gombok, nagy tap-target telefonra
+    this.leftTurnBtn = holdBtn('◀', 0x145f65, 96, 96,
       () => { this.player.turning = -1; vibrate('light'); },
       () => { if (this.player.turning === -1) this.player.turning = 0; },
     );
-    this.rightTurnBtn = holdBtn('▶', 0x145f65, 78, 78,
+    this.rightTurnBtn = holdBtn('▶', 0x145f65, 96, 96,
       () => { this.player.turning = 1; vibrate('light'); },
       () => { if (this.player.turning === 1) this.player.turning = 0; },
     );
-    this.sailBtn = btn('VITORLA\nTELI', 0x3a5a8a, 86, 48, '8px', () => {
+    this.sailBtn = btn('VITORLA\nTELI', 0x3a5a8a, 86, 44, '8px', () => {
       this.player.sailMode = this.player.sailMode === 'full' ? 'battle' : 'full';
       this.refreshSailBtn();
       vibrate('light');
@@ -526,10 +530,11 @@ export class NavalBattleScene extends Phaser.Scene {
     const bottomPad = 20;
 
     // --- Bal alsó sarok: kormányzás (bal hüvelykujj) ---
-    const leftX = 58;
-    this.leftTurnBtn?.setPosition(leftX, H - bottomPad - 40);
-    this.rightTurnBtn?.setPosition(leftX + 90, H - bottomPad - 40);
-    this.sailBtn?.setPosition(leftX + 45, H - bottomPad - 40 - 70);
+    const leftCx = 66;
+    this.leftTurnBtn?.setPosition(leftCx, H - bottomPad - 50);
+    this.rightTurnBtn?.setPosition(leftCx + 108, H - bottomPad - 50);
+    // Vitorla toggle jobbra a kormány mellett
+    this.sailBtn?.setPosition(leftCx + 220, H - bottomPad - 50);
 
     // --- Jobb alsó sarok: tűz + lőszer + akciók (jobb hüvelykujj) ---
     const rightX = W - 60;
@@ -547,9 +552,23 @@ export class NavalBattleScene extends Phaser.Scene {
     this.rangeLabel?.setPosition(W / 2, 38);
   }
 
-  private onWorldTap(_p: Phaser.Input.Pointer): void {
-    // Tap-to-heading kikapcsolva — most kifejezett bal/jobb forgató gombokkal
-    // kormányozzuk a hajót. A tap a világra semmit sem tesz.
+  private onWorldTap(p: Phaser.Input.Pointer): void {
+    // Tap-to-heading segéd a középső területre. A HUD és gombzónák kihagyva,
+    // és ha a játékos éppen kézi forgatást tart, nem írjuk felül.
+    if (!this.player) return;
+    if (this.player.turning !== 0) return;
+    const H = this.scale.height;
+    const W = this.scale.width;
+    // Felül kihagyott sáv: HP + hint
+    if (p.y < 80) return;
+    // Alsó sáv: kormány + tűz UI. Bal és jobb kontrollsáv kb. 230 px széles.
+    if (p.y > H - 180 && (p.x < 240 || p.x > W - 240)) return;
+    const w = this.cameras.main.getWorldPoint(p.x, p.y);
+    const dx = w.x - this.player.ship.x;
+    const dy = w.y - this.player.ship.y;
+    if (Math.hypot(dx, dy) < 40) return;
+    this.player.desiredHeading = Math.atan2(dy, dx);
+    Particles.splash(this, w.x, w.y, 4);
   }
 
   // --- Tüzelés ---
@@ -868,16 +887,18 @@ export class NavalBattleScene extends Phaser.Scene {
     const classTurn = SHIPS[s.shipClass].turn;
     // Csata-vitorla: lassabb de fordulékonyabb
     const turnMult = s.sailMode === 'battle' ? 1.7 : 1.0;
-    const turnRate = 0.0018 * classTurn * turnMult;
+    const baseRate = 0.0018 * classTurn * turnMult;
+    // Kézi forgatásnál érezhetőbben gyorsabb, hogy telefonon is pörögjön
+    const manualRate = baseRate * 2.4;
 
-    // Játékos aktív forgatása gombbal — turning -1/+1 direktben forgat
     if (s.turning !== 0) {
-      const delta = s.turning * turnRate * dt;
-      s.heading += delta;
+      // Játékos tartja a gombot — közvetlen gyors forgatás
+      s.heading += s.turning * manualRate * dt;
       s.desiredHeading = s.heading;
     } else {
+      // Tap-to-heading vagy AI: lassabb, simább befordulás a célirányhoz
       const diff = Phaser.Math.Angle.Wrap(s.desiredHeading - s.heading);
-      s.heading += Phaser.Math.Clamp(diff, -turnRate * dt, turnRate * dt);
+      s.heading += Phaser.Math.Clamp(diff, -baseRate * dt, baseRate * dt);
     }
 
     const sailFactor = s.sail / s.sailMax;
