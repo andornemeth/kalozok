@@ -13,6 +13,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // Önfelszámoló service worker: a korábban installált PWA-k is
+      // törlik a cache-üket és deregisztrálják az SW-t. Ezzel minden
+      // felhasználó mindig a friss buildet kapja.
+      selfDestroying: true,
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
@@ -43,9 +47,6 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
       },
     }),
   ],
